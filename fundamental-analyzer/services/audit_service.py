@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 from typing import Any
 
-from services.portfolio_db import get_connection
+from services.db import get_connection
 
 
 def log_audit_event(
@@ -33,8 +33,24 @@ def log_audit_event(
         connection.execute(
             """
             INSERT INTO audit_logs (user_id, action, details_json, created_at)
-            VALUES (?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s)
             """,
             (resolved_user_id, action.strip(), payload, created_at),
         )
         connection.commit()
+
+
+def log_auth_event(
+    action: str,
+    email: str,
+    reason: str | None = None,
+    user_id: int | None = None,
+    extra_details: dict[str, Any] | None = None,
+) -> None:
+    """Persist an authentication-specific audit event."""
+    details: dict[str, Any] = {"email": email.strip().lower()}
+    if reason:
+        details["reason"] = reason
+    if extra_details:
+        details.update(extra_details)
+    log_audit_event(action=action, details=details, user_id=user_id)

@@ -11,7 +11,7 @@ from config.settings import DEFAULT_RULES_PATH, SUPPORTED_OPERATORS, USER_RULES_
 from models.rule_model import Rule
 from services.audit_service import log_audit_event
 from services.auth_service import require_current_user_id
-from services.portfolio_db import get_connection
+from services.db import get_connection
 
 
 class RuleService:
@@ -32,10 +32,10 @@ class RuleService:
             return json.load(file)
 
     def _load_custom_rules(self, user_id: int) -> dict[str, list[dict[str, object]]]:
-        """Load custom rules for the authenticated user from SQLite."""
+        """Load custom rules for the authenticated user from PostgreSQL."""
         with get_connection() as connection:
             rows = connection.execute(
-                "SELECT category, rules_json FROM custom_rules WHERE user_id = ?",
+                "SELECT category, rules_json FROM custom_rules WHERE user_id = %s",
                 (user_id,),
             ).fetchall()
 
@@ -115,23 +115,23 @@ class RuleService:
 
         return True, "", validated_rules
 
-    def get_rule_source(self, category: str) -> str:
+    def get_rule_source(self, category: str, user_id: int | None = None) -> str:
         """Return the active rule source for a market-cap bucket."""
-        user_id = require_current_user_id()
-        user_rules = self._load_custom_rules(user_id)
+        resolved_user_id = user_id if user_id is not None else require_current_user_id()
+        user_rules = self._load_custom_rules(resolved_user_id)
         if category in user_rules and user_rules[category]:
             return "custom"
         return "default"
 
-    def get_rules(self, category: str) -> list[Rule]:
+    def get_rules(self, category: str, user_id: int | None = None) -> list[Rule]:
         """Return user rules if present, otherwise default rules."""
-        rules, _ = self.get_rules_with_source(category)
+        rules, _ = self.get_rules_with_source(category, user_id=user_id)
         return rules
 
-    def get_rules_with_source(self, category: str) -> tuple[list[Rule], str]:
+    def get_rules_with_source(self, category: str, user_id: int | None = None) -> tuple[list[Rule], str]:
         """Return active rules and whether they came from custom or default config."""
-        user_id = require_current_user_id()
-        user_rules = self._load_custom_rules(user_id)
+        resolved_user_id = user_id if user_id is not None else require_current_user_id()
+        user_rules = self._load_custom_rules(resolved_user_id)
         if category in user_rules and user_rules[category]:
             return self._coerce_rules(user_rules[category]), "custom"
         default_rules = self._load_json(self.default_rules_path)
@@ -146,8 +146,8 @@ class RuleService:
             connection.execute(
                 """
                 INSERT INTO custom_rules (user_id, category, rules_json, updated_at)
-                VALUES (?, ?, ?, ?)
-                ON CONFLICT(user_id, category)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (user_id, category)
                 DO UPDATE SET rules_json = excluded.rules_json, updated_at = excluded.updated_at
                 """,
                 (user_id, category, payload, updated_at),

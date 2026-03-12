@@ -11,6 +11,7 @@ from services.transaction_service import export_transactions_csv, import_transac
 from services.watchlist_service import export_watchlist_csv, import_watchlist_csv
 from ui.design_system import render_section_header, render_status_badge
 from ui.layout_helpers import create_columns
+from ui.portfolio_import_section import render_portfolio_import_section
 from ui.ui_theme import apply_finance_theme
 
 
@@ -21,6 +22,8 @@ def render_import_export_section() -> None:
         "Import / Export",
         "Move ledger data in and out of the app with controlled CSV workflows.",
     )
+
+    render_portfolio_import_section()
 
     import_column, export_column = create_columns(2)
     holdings = calculate_holdings()

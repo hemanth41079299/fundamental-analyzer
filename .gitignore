@@ -3,7 +3,9 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .venv/
+.env
 fundamental-analyzer/.venv/
+fundamental-analyzer/.env
 fundamental-analyzer/__pycache__/
 fundamental-analyzer/.pytest_cache/
 fundamental-analyzer/data/portfolio.db

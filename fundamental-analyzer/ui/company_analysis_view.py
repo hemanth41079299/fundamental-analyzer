@@ -12,7 +12,11 @@ from core.classifier import classify_market_cap
 from core.narration_engine import build_narration
 from models.company_data import CompanyData
 from models.result_model import AnalysisResult, IntrinsicValueSummary, RedFlagSummary
+from services.geopolitical_impact_service import build_geopolitical_impact
 from services.history_service import load_company_history, save_company_history
+from services.news_fetch_service import fetch_company_news, fetch_macro_news
+from services.news_impact_classifier import classify_news_item
+from services.news_risk_service import scan_company_news_risk
 from services.report_service import save_analysis_output
 from services.rule_service import RuleService
 from ui.charts_section import render_charts_section
@@ -24,6 +28,8 @@ from ui.design_system import (
     render_section_header,
     render_status_badge,
 )
+from ui.geopolitical_risk_section import render_geopolitical_risk_section
+from ui.news_alerts_dashboard import render_recent_news_table
 from ui.rules_editor import render_rules_editor
 from ui.suggestion_section import render_suggestion_section
 from ui.ui_theme import apply_finance_theme
@@ -245,6 +251,115 @@ def _render_red_flags_card(red_flags: RedFlagSummary) -> None:
     st.markdown("</div>", unsafe_allow_html=True)
 
 
+def _extract_company_identifier(company_data: CompanyData) -> tuple[str | None, str | None]:
+    """Resolve ticker and company name for external scans."""
+    source_file = str(company_data.source_file or "")
+    ticker = None
+    for prefix in ("web:", "portfolio:"):
+        if source_file.startswith(prefix):
+            ticker = source_file.split(":", 1)[1].strip().upper() or None
+            break
+    return ticker, company_data.company_name or None
+
+
+def _render_news_risk_card(news_risk: dict[str, object]) -> None:
+    """Render negative-news risk output."""
+    render_section_header("Negative News Risk", "RSS-based scan for adverse keywords across recent news coverage.")
+    tone = "positive" if news_risk["risk_level"] == "low" else "warning"
+    st.markdown('<div class="finance-side-card">', unsafe_allow_html=True)
+    render_status_badge(f"News Risk: {str(news_risk['risk_level']).title()}", tone=tone)
+    signals = list(news_risk.get("signals", []))
+    if signals:
+        for signal in signals:
+            st.write(f"- {signal}")
+    else:
+        render_empty_state("No negative news signals", "The keyword-based news scan did not detect major negative signals.")
+
+    matched_articles = news_risk.get("matched_articles", [])
+    if matched_articles:
+        article_frame = pd.DataFrame(
+            [
+                {
+                    "Title": item.get("title"),
+                    "Source": item.get("source"),
+                    "Signals": ", ".join(item.get("matched_signals", [])),
+                }
+                for item in matched_articles[:5]
+            ]
+        )
+        st.dataframe(article_frame, use_container_width=True, hide_index=True)
+
+    source_errors = list(news_risk.get("source_errors", []))
+    if source_errors and not matched_articles:
+        st.caption("News sources were partially unavailable during this scan.")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+def _build_company_news_context(ticker: str | None, company_name: str | None, sector: str | None = None) -> dict[str, object]:
+    """Build recent company news and macro relevance for one company."""
+    company_news = fetch_company_news(ticker or "", company_name=company_name, limit=5)
+    recent_rows = []
+    for item in list(company_news.get("items", []))[:5]:
+        classification = classify_news_item(item)
+        recent_rows.append(
+            {
+                "Title": item.get("title"),
+                "Type": classification["event_type"],
+                "Direction": classification["impact_direction"],
+                "Severity": classification["severity"],
+                "Source": item.get("source"),
+                "Date": item.get("published_at"),
+            }
+        )
+
+    macro_fetch = fetch_macro_news(limit=8)
+    holding_frame = pd.DataFrame(
+        [
+            {
+                "Ticker": ticker or company_name or "UNKNOWN",
+                "Company": company_name or ticker or "Unknown Company",
+                "Sector": sector or "Unknown",
+                "Current Value": 100.0,
+            }
+        ]
+    )
+    geo_output = build_geopolitical_impact(holding_frame, list(macro_fetch.get("items", [])))
+    impact_rows = []
+    for event in list(geo_output.get("macro_events", [])):
+        for affected in list(event.get("affected_holdings", [])):
+            impact_rows.append(
+                {
+                    "ticker": affected.get("ticker"),
+                    "company_name": affected.get("company_name"),
+                    "event_title": event.get("event_title"),
+                    "event_type": event.get("event_type"),
+                    "impact_direction": affected.get("impact_direction"),
+                    "severity": affected.get("severity"),
+                    "summary": affected.get("reason"),
+                    "source": event.get("source"),
+                    "event_date": event.get("event_date"),
+                    "why_it_matters": affected.get("reason"),
+                }
+            )
+    return {
+        "recent_news": recent_rows,
+        "macro_relevance": {
+            "impact_rows": impact_rows,
+            "portfolio_summary": {
+                "impacted_holdings": 1 if impact_rows else 0,
+                "positive_events": len([row for row in impact_rows if row["impact_direction"] == "Positive Tailwind"]),
+                "negative_events": len([row for row in impact_rows if row["impact_direction"] == "Negative Headwind"]),
+                "monitor_events": len([row for row in impact_rows if row["impact_direction"] == "Neutral / Monitor"]),
+            },
+            "top_positive_tailwinds": [row for row in impact_rows if row["impact_direction"] == "Positive Tailwind"][:3],
+            "top_negative_headwinds": [row for row in impact_rows if row["impact_direction"] == "Negative Headwind"][:3],
+            "macro_events": geo_output.get("macro_events", []),
+            "exposure_map": geo_output.get("exposure_map", {}),
+            "source_errors": list(company_news.get("errors", [])) + list(macro_fetch.get("errors", [])),
+        },
+    }
+
+
 def _render_narration_card(narration: str) -> None:
     """Render narration output."""
     render_section_header("Narration", "Readable summary of the research outcome in the selected tone.")
@@ -302,7 +417,10 @@ def render_company_analysis_view(
 
     analysis_result = build_analysis(company_data, market_cap_category, active_rules)
     narration = build_narration(company_data, analysis_result, tone=narration_style)
-    history_path = save_company_history(company_data, analysis_result, narration)
+    identifier_ticker, identifier_name = _extract_company_identifier(company_data)
+    news_risk = scan_company_news_risk(ticker=identifier_ticker, company_name=identifier_name)
+    company_news_context = _build_company_news_context(identifier_ticker, identifier_name, None)
+    save_company_history(company_data, analysis_result, narration)
     history_rows = load_company_history(company_data.company_name or "Unknown Company")
     output_path = save_analysis_output(
         output_dir=output_dir,
@@ -332,6 +450,41 @@ def render_company_analysis_view(
         _render_red_flags_card(analysis_result.red_flags)
         st.markdown("</div>", unsafe_allow_html=True)
 
+    st.markdown('<div class="finance-side-card">', unsafe_allow_html=True)
+    _render_news_risk_card(news_risk)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    news_left, news_right = st.columns([1.1, 1])
+    with news_left:
+        st.markdown('<div class="finance-side-card">', unsafe_allow_html=True)
+        render_recent_news_table(
+            items=list(company_news_context.get("recent_news", [])),
+            title="Recent Important News",
+            caption="Latest classified company headlines relevant to the current research view.",
+            empty_message="No recent company news items were available.",
+        )
+        st.markdown("</div>", unsafe_allow_html=True)
+    with news_right:
+        st.markdown('<div class="finance-side-card">', unsafe_allow_html=True)
+        render_geopolitical_risk_section(
+            dict(company_news_context.get("macro_relevance", {})),
+            {
+                "most_affected_stock": identifier_ticker or identifier_name,
+                "most_vulnerable_sector": "NA",
+                "macro_themes_affecting_portfolio": [
+                    str(event.get("theme"))
+                    for event in list(dict(company_news_context.get("macro_relevance", {})).get("macro_events", []))
+                    if str(event.get("event_type")) == "macro"
+                ],
+                "geopolitical_themes_affecting_portfolio": [
+                    str(event.get("theme"))
+                    for event in list(dict(company_news_context.get("macro_relevance", {})).get("macro_events", []))
+                    if str(event.get("event_type")) == "geopolitical"
+                ],
+            },
+        )
+        st.markdown("</div>", unsafe_allow_html=True)
+
     thesis_left, thesis_right = st.columns([1.3, 1])
     with thesis_left:
         st.markdown('<div class="finance-side-card">', unsafe_allow_html=True)
@@ -358,4 +511,4 @@ def render_company_analysis_view(
     st.markdown("</div>", unsafe_allow_html=True)
 
     st.caption(f"Analysis output saved to: {output_path}")
-    st.caption(f"Company history stored at: {history_path}")
+    st.caption("Company history stored in PostgreSQL.")

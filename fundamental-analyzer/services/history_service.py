@@ -7,10 +7,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from config.settings import DATA_DIR
 from models.company_data import CompanyData
 from models.result_model import AnalysisResult
 from services.auth_service import require_current_user_id
-from services.portfolio_db import PORTFOLIO_DB_PATH, get_connection
+from services.db import get_connection
 
 
 def load_company_history(company_name: str) -> list[dict[str, Any]]:
@@ -21,7 +22,7 @@ def load_company_history(company_name: str) -> list[dict[str, Any]]:
             """
             SELECT timestamp, company_name, source_file, metrics_json, score, total_score, verdict, narration
             FROM company_history
-            WHERE user_id = ? AND company_name = ?
+            WHERE user_id = %s AND company_name = %s
             ORDER BY timestamp ASC, id ASC
             """,
             (user_id, company_name),
@@ -53,7 +54,7 @@ def save_company_history(
     analysis_result: AnalysisResult,
     narration: str,
 ) -> Path:
-    """Append a user-scoped company analysis entry to SQLite."""
+    """Append a user-scoped company analysis entry to PostgreSQL."""
     user_id = require_current_user_id()
     company_name = company_data.company_name or "Unknown Company"
     timestamp = datetime.now().isoformat(timespec="seconds")
@@ -63,7 +64,7 @@ def save_company_history(
             INSERT INTO company_history (
                 user_id, timestamp, company_name, source_file, metrics_json,
                 score, total_score, verdict, narration
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 user_id,
@@ -78,4 +79,4 @@ def save_company_history(
             ),
         )
         connection.commit()
-    return PORTFOLIO_DB_PATH
+    return DATA_DIR / "postgresql"

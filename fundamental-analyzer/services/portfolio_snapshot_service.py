@@ -10,8 +10,8 @@ import pandas as pd
 from services.audit_service import log_audit_event
 from services.auth_service import require_current_user_id
 from services.cash_service import get_cash_balance
+from services.db import get_connection
 from services.holdings_service import build_portfolio_summary, calculate_holdings
-from services.portfolio_db import get_connection
 
 
 def save_snapshot(snapshot_date: str | None = None) -> None:
@@ -25,10 +25,18 @@ def save_snapshot(snapshot_date: str | None = None) -> None:
     with get_connection() as connection:
         connection.execute(
             """
-            INSERT OR REPLACE INTO portfolio_snapshots (
+            INSERT INTO portfolio_snapshots (
                 user_id, snapshot_date, invested_amount, portfolio_value, unrealized_pnl,
                 realized_pnl, cash_balance, total_net_worth
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (user_id, snapshot_date)
+            DO UPDATE SET
+                invested_amount = EXCLUDED.invested_amount,
+                portfolio_value = EXCLUDED.portfolio_value,
+                unrealized_pnl = EXCLUDED.unrealized_pnl,
+                realized_pnl = EXCLUDED.realized_pnl,
+                cash_balance = EXCLUDED.cash_balance,
+                total_net_worth = EXCLUDED.total_net_worth
             """,
             (
                 user_id,
@@ -59,7 +67,7 @@ def save_snapshot_if_missing_today() -> None:
     today = date.today().isoformat()
     with get_connection() as connection:
         row = connection.execute(
-            "SELECT id FROM portfolio_snapshots WHERE user_id = ? AND snapshot_date = ?",
+            "SELECT id FROM portfolio_snapshots WHERE user_id = %s AND snapshot_date = %s",
             (user_id, today),
         ).fetchone()
     if row is None:
@@ -71,7 +79,7 @@ def get_snapshots() -> pd.DataFrame:
     user_id = require_current_user_id()
     with get_connection() as connection:
         frame = pd.read_sql_query(
-            "SELECT * FROM portfolio_snapshots WHERE user_id = ? ORDER BY snapshot_date ASC, id ASC",
+            "SELECT * FROM portfolio_snapshots WHERE user_id = %s ORDER BY snapshot_date ASC, id ASC",
             connection,
             params=(user_id,),
         )

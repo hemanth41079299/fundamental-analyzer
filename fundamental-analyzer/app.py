@@ -11,11 +11,13 @@ from core.extractor import FundamentalExtractor
 from core.validators import validate_pdf_file
 from services.bulk_analysis_service import analyze_bulk_companies
 from models.company_data import CompanyData
-from services.auth_service import get_current_user, initialize_auth_state, is_authenticated, logout_user
+from services.auth_service import get_current_user, initialize_auth_state, is_admin_user, is_authenticated, logout_user
+from services.auth_guard import enforce_session_timeout, touch_session_activity
+from services.auth_service import get_current_user_id
 from services.cash_service import get_cash_balance
 from services.holdings_service import build_portfolio_summary, calculate_holdings
+from services.db import init_db
 from services.pdf_service import extract_pdf_text, save_uploaded_file
-from services.portfolio_db import init_portfolio_db
 from services.portfolio_snapshot_service import get_snapshots, save_snapshot_if_missing_today
 from services.portfolio_service import analyze_portfolio, load_portfolio_csv, web_payload_to_company_data
 from services.transaction_service import get_transactions
@@ -23,6 +25,7 @@ from services.watchlist_service import get_watchlist
 from services.web_data_service import fetch_company_data
 from ui.bulk_analysis_section import render_bulk_analysis_section
 from ui.cash_ledger_section import render_cash_ledger_section
+from ui.admin_user_approvals_page import render_admin_user_approvals_page
 from ui.company_analysis_view import render_company_analysis_view
 from ui.import_export_section import render_import_export_section
 from ui.login_page import render_login_page
@@ -31,10 +34,13 @@ from ui.portfolio_allocation_section import render_portfolio_allocation_section
 from ui.portfolio_dashboard import render_portfolio_dashboard
 from ui.portfolio_holdings_table import render_portfolio_holdings_table
 from ui.portfolio_history_section import render_portfolio_history_section
+from ui.market_discovery_page import render_market_discovery_page
 from ui.portfolio_section import render_portfolio_section
 from ui.register_page import render_register_page
+from ui.risk_monitor_page import render_risk_monitor_page
 from ui.settings_page import render_settings_page
 from ui.transaction_form import render_transaction_form
+from ui.watchlist_dashboard import render_watchlist_dashboard
 from ui.watchlist_section import render_watchlist_section
 from ui.upload_section import (
     render_bulk_analysis_upload_section,
@@ -75,6 +81,10 @@ def _render_analysis(company_data: CompanyData, narration_style: str, source_lab
 def _render_portfolio_manager() -> None:
     """Render the persistent portfolio management workspace."""
     save_snapshot_if_missing_today()
+    user_id = get_current_user_id()
+    if user_id is None:
+        st.error("You must be logged in to access the portfolio manager.")
+        return
 
     with st.sidebar:
         st.markdown("### Portfolio Manager")
@@ -86,6 +96,9 @@ def _render_portfolio_manager() -> None:
                 "Holdings",
                 "Cash",
                 "Watchlist",
+                "Watchlist Dashboard",
+                "Market Discovery",
+                "Risk Monitor",
                 "Allocation",
                 "History",
                 "Import / Export",
@@ -98,44 +111,80 @@ def _render_portfolio_manager() -> None:
     cash_balance = get_cash_balance()
     summary = build_portfolio_summary(holdings, cash_balance)
     snapshots = get_snapshots()
+    transactions = get_transactions()
+    watchlist = get_watchlist()
 
-    if portfolio_section == "Dashboard":
-        render_portfolio_dashboard(summary, holdings, snapshots)
-        return
+    import_feedback = st.session_state.pop("portfolio_import_completed", None)
+    if import_feedback:
+        st.success(
+            f"Imported {int(import_feedback.get('rows_imported', 0))} holdings rows from {import_feedback.get('file_name', 'the file')}. Holdings and portfolio analytics were refreshed."
+        )
 
-    if portfolio_section == "Transactions":
-        render_transaction_form()
-        transactions = get_transactions()
-        st.subheader("Transaction History")
-        if transactions.empty:
-            st.info("No transactions recorded yet.")
-        else:
-            st.dataframe(transactions, use_container_width=True, hide_index=True)
-        return
+    try:
+        if portfolio_section == "Dashboard":
+            render_portfolio_dashboard(
+                user_id=user_id,
+                summary=summary,
+                holdings=holdings,
+                snapshot_df=snapshots,
+                transaction_history=transactions,
+                watchlist=watchlist,
+            )
+            return
 
-    if portfolio_section == "Holdings":
-        render_portfolio_holdings_table(holdings)
-        return
+        if portfolio_section == "Transactions":
+            render_transaction_form()
+            st.subheader("Transaction History")
+            if transactions.empty:
+                st.info("No transactions recorded yet.")
+            else:
+                st.dataframe(transactions, use_container_width=True, hide_index=True)
+            return
 
-    if portfolio_section == "Cash":
-        render_cash_ledger_section()
-        return
+        if portfolio_section == "Holdings":
+            render_portfolio_holdings_table(holdings)
+            return
 
-    if portfolio_section == "Watchlist":
-        watchlist = get_watchlist()
-        st.caption(f"Tracked watchlist items: {len(watchlist)}")
-        render_watchlist_section()
-        return
+        if portfolio_section == "Cash":
+            render_cash_ledger_section()
+            return
 
-    if portfolio_section == "Allocation":
-        render_portfolio_allocation_section(summary, holdings, cash_balance)
-        return
+        if portfolio_section == "Watchlist":
+            watchlist = get_watchlist()
+            st.caption(f"Tracked watchlist items: {len(watchlist)}")
+            render_watchlist_section()
+            return
 
-    if portfolio_section == "History":
-        render_portfolio_history_section()
-        return
+        if portfolio_section == "Watchlist Dashboard":
+            render_watchlist_dashboard(user_id)
+            return
 
-    render_import_export_section()
+        if portfolio_section == "Market Discovery":
+            render_market_discovery_page(user_id)
+            return
+
+        if portfolio_section == "Risk Monitor":
+            render_risk_monitor_page(
+                user_id=user_id,
+                holdings=holdings,
+                transactions=transactions,
+                cash_balance=cash_balance,
+            )
+            return
+
+        if portfolio_section == "Allocation":
+            render_portfolio_allocation_section(summary, holdings, cash_balance)
+            return
+
+        if portfolio_section == "History":
+            render_portfolio_history_section()
+            return
+
+        render_import_export_section()
+    except ValueError as exc:
+        st.error(str(exc))
+    except Exception as exc:
+        st.error(f"Unable to load the selected portfolio page right now: {exc}")
 
 
 def _render_auth_screen() -> None:
@@ -152,10 +201,19 @@ def _render_auth_screen() -> None:
 def main() -> None:
     """Run the Streamlit UI workflow."""
     st.set_page_config(page_title=APP_TITLE, layout="wide")
-    init_portfolio_db()
+    try:
+        init_db()
+    except ValueError as exc:
+        st.error(str(exc))
+        return
     initialize_auth_state()
     st.title(APP_TITLE)
-    st.caption("Modular equity research platform for company analysis and persistent portfolio tracking.")
+    st.caption("Modular equity research platform for company analysis, persistent portfolio tracking, and news-impact monitoring.")
+
+    if enforce_session_timeout():
+        st.warning("Your session expired due to inactivity. Please log in again.")
+        _render_auth_screen()
+        return
 
     if not is_authenticated():
         _render_auth_screen()
@@ -168,6 +226,8 @@ def main() -> None:
         _render_auth_screen()
         return
 
+    touch_session_activity()
+
     with st.sidebar:
         st.markdown("### Account")
         st.caption(str(current_user["name"]))
@@ -175,14 +235,24 @@ def main() -> None:
         if st.button("Logout", use_container_width=True):
             logout_user()
             st.rerun()
+        workspace_options = ["Company Analysis", "Portfolio Manager", "Settings"]
+        if is_admin_user():
+            workspace_options.append("Admin Approvals")
         workspace = st.radio(
             "Workspace",
-            options=["Company Analysis", "Portfolio Manager", "Settings"],
+            options=workspace_options,
             index=0,
         )
 
     if workspace == "Settings":
         render_settings_page(current_user)
+        return
+
+    if workspace == "Admin Approvals":
+        try:
+            render_admin_user_approvals_page()
+        except ValueError as exc:
+            st.error(str(exc))
         return
 
     if workspace == "Portfolio Manager":

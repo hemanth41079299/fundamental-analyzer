@@ -10,7 +10,7 @@ import pandas as pd
 
 from services.audit_service import log_audit_event
 from services.auth_service import require_current_user_id
-from services.portfolio_db import get_connection
+from services.db import get_connection
 
 
 @dataclass
@@ -37,7 +37,7 @@ def get_transactions() -> pd.DataFrame:
     user_id = require_current_user_id()
     with get_connection() as connection:
         frame = pd.read_sql_query(
-            "SELECT * FROM transactions WHERE user_id = ? ORDER BY date ASC, id ASC",
+            "SELECT * FROM transactions WHERE user_id = %s ORDER BY date ASC, id ASC",
             connection,
             params=(user_id,),
         )
@@ -59,7 +59,7 @@ def _available_quantity(ticker: str) -> float:
                 END
             ), 0) AS net_quantity
             FROM transactions
-            WHERE user_id = ? AND ticker = ?
+            WHERE user_id = %s AND ticker = %s
             """,
             (user_id, normalized_ticker),
         ).fetchone()
@@ -106,7 +106,7 @@ def add_transaction(payload: TransactionInput) -> None:
             """
             INSERT INTO transactions (
                 user_id, date, ticker, company_name, transaction_type, quantity, price, charges, notes
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 user_id,

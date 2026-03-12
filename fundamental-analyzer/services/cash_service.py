@@ -8,7 +8,7 @@ from io import StringIO
 import pandas as pd
 
 from services.auth_service import require_current_user_id
-from services.portfolio_db import get_connection
+from services.db import get_connection
 
 
 @dataclass
@@ -39,7 +39,7 @@ def add_cash_entry(payload: CashEntryInput) -> None:
         connection.execute(
             """
             INSERT INTO cash_ledger (user_id, date, entry_type, amount, notes)
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s)
             """,
             (user_id, payload.date, payload.entry_type, payload.amount, payload.notes.strip()),
         )
@@ -51,7 +51,7 @@ def get_cash_entries() -> pd.DataFrame:
     user_id = require_current_user_id()
     with get_connection() as connection:
         frame = pd.read_sql_query(
-            "SELECT * FROM cash_ledger WHERE user_id = ? ORDER BY date DESC, id DESC",
+            "SELECT * FROM cash_ledger WHERE user_id = %s ORDER BY date DESC, id DESC",
             connection,
             params=(user_id,),
         )
@@ -72,9 +72,8 @@ def get_cash_balance() -> float:
                 END
             ), 0) AS cash_balance
             FROM cash_ledger
-            WHERE user_id = ?
-            """
-            ,
+            WHERE user_id = %s
+            """,
             (user_id,),
         ).fetchone()
     return float(row["cash_balance"]) if row is not None else 0.0

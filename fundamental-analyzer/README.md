@@ -1,6 +1,6 @@
 # Fundamental Analyzer
 
-Fundamental Analyzer is a local Streamlit equity research platform. It combines rule-based company analysis with a persistent SQLite portfolio tracker and a broker-style portfolio dashboard.
+Fundamental Analyzer is a local Streamlit equity research platform. It combines rule-based company analysis with a persistent PostgreSQL-backed portfolio tracker and a broker-style portfolio dashboard.
 
 ## Features
 
@@ -10,11 +10,13 @@ Fundamental Analyzer is a local Streamlit equity research platform. It combines 
 - Rule evaluation, scorecard, risk scan, suggestion layer, valuation analysis, earnings quality checks, red flag detection, narration, and thesis generation
 - Financial trend charts with Plotly
 - Portfolio CSV analyzer and Screener CSV bulk analysis
-- Persistent portfolio manager backed by SQLite
+- Persistent portfolio manager backed by PostgreSQL
+- Holdings import workflow for CSV, Excel, and text-based PDF statements
 - Local authentication with hashed passwords
 - Secure PDF uploads with user-scoped storage
 - Audit logging for key account and portfolio actions
-- Company research history stored locally as JSON
+- Company research history stored in PostgreSQL
+- Portfolio news, policy, macro, and geopolitical impact mapping for holdings and watchlist names
 
 ## Workspaces
 
@@ -41,17 +43,18 @@ Sections:
 3. Holdings
 4. Cash
 5. Watchlist
-6. Allocation
-7. History
-8. Import / Export
+6. Watchlist Dashboard
+7. Market Discovery
+8. Risk Monitor
+9. Allocation
+10. History
+11. Import / Export
 
 The Portfolio Manager dashboard is an original implementation inspired by modern broker dashboards. It follows a similar information architecture, but it does not copy any third-party branding or proprietary styling.
 
 ## Portfolio Tracking Model
 
-Portfolio data is stored locally in SQLite at:
-
-`data/portfolio.db`
+Portfolio data is stored in PostgreSQL through the configured `DATABASE_URL`.
 
 Tables:
 
@@ -64,7 +67,7 @@ No broker sync is used. All entries are manual or imported from CSV.
 
 ## Authentication
 
-The app includes a local authentication layer backed by the same SQLite database.
+The app includes a local authentication layer backed by the same PostgreSQL database.
 
 Supported account features:
 
@@ -72,6 +75,7 @@ Supported account features:
 - login with email and password
 - logout
 - change password from the settings page
+- admin email notification on new registration
 
 Passwords are stored as bcrypt hashes through `passlib`. Plain text passwords are not stored.
 Passwords are truncated to bcrypt's 72-byte limit before hashing and verification.
@@ -98,6 +102,25 @@ Protected pages:
 - Settings
 
 If a user is not logged in, protected views are not rendered.
+
+New registrations are created as:
+
+- `approval_status = pending`
+- `is_active = false`
+
+Pending users cannot log in until they are approved and activated.
+
+Admin approval email settings are read from environment variables:
+
+- `SMTP_HOST`
+- `SMTP_PORT`
+- `SMTP_USERNAME`
+- `SMTP_PASSWORD`
+- `SMTP_FROM_EMAIL`
+- `SMTP_USE_TLS`
+- `ADMIN_APPROVAL_EMAIL`
+
+If email delivery fails, registration still succeeds and the failure is written to the audit log.
 
 ## Upload Security And Audit Logging
 
@@ -183,10 +206,18 @@ Dashboard sections:
 1. Header with last updated timestamp and portfolio status summary
 2. KPI row for invested amount, current value, unrealized P&L, realized P&L, cash balance, and total net worth
 3. Large portfolio performance chart using snapshot history
-4. Account overview and allocation visuals
-5. Styled holdings table with suggestion and risk labels
-6. Portfolio insights cards
-7. Research widgets based on the existing analysis engine
+4. Portfolio health score and portfolio intelligence summary
+5. Sector allocation visuals
+6. Top holdings and holdings analytics
+7. Risk alerts and news alerts
+8. Portfolio news impact summary with holding-level event mapping
+9. Macro and geopolitical exposure summary
+
+Additional portfolio intelligence pages:
+
+- `Watchlist Dashboard`
+- `Market Discovery`
+- `Risk Monitor`
 
 Dashboard actions:
 
@@ -257,6 +288,10 @@ Sector values are fetched from the existing web data service when available. If 
 
 Import supported:
 
+- holdings files:
+  - CSV
+  - Excel
+  - text-based PDF holdings statements
 - transactions CSV
 - watchlist CSV
 
@@ -269,6 +304,88 @@ Export supported:
 - cash ledger CSV
 
 Invalid CSV schema is rejected with a friendly error.
+
+### Holdings Import Workflow
+
+Inside `Portfolio Manager -> Import / Export`, the app supports a holdings import workflow:
+
+1. Upload a holdings file
+2. Parse and normalize the file into a standard holdings schema
+3. Preview the parsed rows and validation status
+4. Confirm import
+5. Convert valid rows into `BUY` transactions
+
+Default import mode:
+
+- `quantity` comes from the file
+- `avg_buy` becomes transaction `price`
+- `buy_value` is used as a fallback to derive average buy if needed
+- imported `ltp` is stored as fallback metadata and used later if live market price is unavailable
+
+After import:
+
+- holdings are refreshed automatically
+- portfolio analytics rerun on the next render
+- holdings continue to show `Score`, `Suggestion`, and `Risk` where live company research data is available
+
+## Portfolio News And Geopolitical Impact Layer
+
+The platform includes a deterministic research-assistance layer for:
+
+- company-specific news
+- sector news
+- macroeconomic news
+- geopolitical developments
+- government and policy changes
+
+Data flow:
+
+1. Load user holdings and watchlist names
+2. Fetch normalized RSS-based company, sector, and macro headlines
+3. Classify each item with rule-based impact labels
+4. Map events to holdings using ticker, sector, and sensitivity tags
+5. Generate holding-level impact rows and portfolio-level summaries
+
+Supported impact labels:
+
+- `Positive Tailwind`
+- `Negative Headwind`
+- `Neutral / Monitor`
+- `Policy Risk`
+- `Geopolitical Risk`
+- `Sector Tailwind`
+- `Macro Headwind`
+- `High Impact Event`
+
+Sensitivity tagging:
+
+- configured in `config/holding_sensitivity_map.json`
+- ticker mapping is used first
+- sector fallback mapping is used when a ticker is not explicitly tagged
+
+Portfolio news outputs include:
+
+- portfolio news impact summary
+- top positive tailwinds
+- top negative headwinds
+- macro / geopolitical exposure summary
+- holding-level impact table
+- exposure map for rate, export, policy, commodity, and geopolitical sensitivity
+
+Watchlist intelligence also includes:
+
+- latest important news
+- policy and macro triggers
+- positive catalysts
+- negative news alerts
+
+Current MVP news sources:
+
+- Google News RSS style company queries
+- Google News RSS style sector queries
+- Google News RSS style macro and policy queries
+
+This layer is informational research support. It is not investment advice.
 
 ## Project Structure
 
@@ -283,6 +400,7 @@ fundamental-analyzer/
 ├── services/
 │   ├── bulk_analysis_service.py
 │   ├── cash_service.py
+│   ├── db.py
 │   ├── history_service.py
 │   ├── holdings_service.py
 │   ├── pdf_service.py
@@ -319,7 +437,7 @@ fundamental-analyzer/
 ├── data/
 │   ├── company_history/
 │   ├── examples/
-│   └── portfolio.db
+│   └── ...
 ├── uploads/
 ├── outputs/
 └── tests/
@@ -328,10 +446,13 @@ fundamental-analyzer/
 ## Installation
 
 ```bash
+cp .env.example .env
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
+
+Set `DATABASE_URL` in `.env` to a reachable PostgreSQL database before running the app.
 
 ## Run
 
@@ -348,7 +469,7 @@ The app usually opens on [http://localhost:8501](http://localhost:8501).
 
 ## Notes
 
-- `sqlite3` is part of the Python standard library, so no extra database package is required.
+- PostgreSQL access uses `psycopg`.
 - `yfinance` and `plotly` must be installed for company search and charts.
 - If live market data is unavailable, holdings are still shown and market-dependent fields stay blank instead of failing.
 - This is a personal portfolio tracking tool. It does not sync with a broker or exchange account.

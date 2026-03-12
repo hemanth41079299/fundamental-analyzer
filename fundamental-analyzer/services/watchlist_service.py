@@ -9,7 +9,7 @@ from io import StringIO
 import pandas as pd
 
 from services.auth_service import require_current_user_id
-from services.portfolio_db import get_connection
+from services.db import get_connection
 
 
 @dataclass
@@ -35,7 +35,7 @@ def add_watchlist_item(payload: WatchlistInput) -> None:
 
     with get_connection() as connection:
         existing = connection.execute(
-            "SELECT id FROM watchlist WHERE user_id = ? AND ticker = ?",
+            "SELECT id FROM watchlist WHERE user_id = %s AND ticker = %s",
             (user_id, ticker),
         ).fetchone()
         if existing is not None:
@@ -44,7 +44,7 @@ def add_watchlist_item(payload: WatchlistInput) -> None:
         connection.execute(
             """
             INSERT INTO watchlist (user_id, ticker, company_name, added_on, notes)
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s)
             """,
             (user_id, ticker, payload.company_name.strip(), date.today().isoformat(), payload.notes.strip()),
         )
@@ -56,7 +56,7 @@ def get_watchlist() -> pd.DataFrame:
     user_id = require_current_user_id()
     with get_connection() as connection:
         frame = pd.read_sql_query(
-            "SELECT * FROM watchlist WHERE user_id = ? ORDER BY added_on DESC, id DESC",
+            "SELECT * FROM watchlist WHERE user_id = %s ORDER BY added_on DESC, id DESC",
             connection,
             params=(user_id,),
         )
@@ -67,7 +67,7 @@ def remove_watchlist_item(watchlist_id: int) -> None:
     """Remove an item from the watchlist."""
     user_id = require_current_user_id()
     with get_connection() as connection:
-        connection.execute("DELETE FROM watchlist WHERE user_id = ? AND id = ?", (user_id, watchlist_id))
+        connection.execute("DELETE FROM watchlist WHERE user_id = %s AND id = %s", (user_id, watchlist_id))
         connection.commit()
 
 

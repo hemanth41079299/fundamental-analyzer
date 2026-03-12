@@ -2,10 +2,19 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping
 from typing import Any
 
 import pandas as pd
+
+TICKER_SANITIZE_PATTERN = re.compile(r"[\s\u00A0\u200B-\u200D\uFEFF]+")
+
+
+def _normalize_symbol(symbol: str) -> str:
+    """Normalize ticker input, including mobile-copy whitespace artifacts."""
+    cleaned = TICKER_SANITIZE_PATTERN.sub("", symbol or "")
+    return cleaned.strip().upper()
 
 
 def _safe_float(value: Any) -> float | None:
@@ -215,7 +224,7 @@ def fetch_company_data(symbol: str) -> dict[str, float | str | None]:
     The function returns a normalized dictionary that can be mapped into the
     existing ``CompanyData`` model. Missing metrics are returned as ``None``.
     """
-    cleaned_symbol = symbol.strip().upper()
+    cleaned_symbol = _normalize_symbol(symbol)
     if not cleaned_symbol:
         raise ValueError("Ticker is required.")
 
@@ -224,20 +233,75 @@ def fetch_company_data(symbol: str) -> dict[str, float | str | None]:
     except ModuleNotFoundError as exc:  # pragma: no cover - depends on local env
         raise ValueError("yfinance is not installed. Run: pip install yfinance") from exc
 
+    ticker = yf.Ticker(cleaned_symbol)
+    network_errors: list[str] = []
+
+    info: Mapping[str, Any] = {}
+    fast_info: Mapping[str, Any] = {}
+    income_stmt: pd.DataFrame | None = None
+    balance_sheet: pd.DataFrame | None = None
+    cashflow: pd.DataFrame | None = None
+    history: pd.DataFrame | None = None
+
     try:
-        ticker = yf.Ticker(cleaned_symbol)
-        info: Mapping[str, Any] = ticker.info or {}
+        info = ticker.get_info() or {}
+    except Exception as exc:
+        network_errors.append(str(exc))
+        try:
+            info = ticker.info or {}
+        except Exception as inner_exc:
+            network_errors.append(str(inner_exc))
+            info = {}
+
+    try:
+        fast_info = dict(ticker.fast_info) if ticker.fast_info else {}
+    except Exception as exc:
+        network_errors.append(str(exc))
+        fast_info = {}
+
+    try:
         income_stmt = ticker.income_stmt
+    except Exception as exc:
+        network_errors.append(str(exc))
+        income_stmt = None
+
+    try:
         balance_sheet = ticker.balance_sheet
+    except Exception as exc:
+        network_errors.append(str(exc))
+        balance_sheet = None
+
+    try:
         cashflow = ticker.cashflow
-    except Exception as exc:  # pragma: no cover - network/API path
-        raise ValueError(f"Unable to fetch web data for ticker: {cleaned_symbol}") from exc
+    except Exception as exc:
+        network_errors.append(str(exc))
+        cashflow = None
 
-    if not info:
-        raise ValueError(f"No data returned for ticker: {cleaned_symbol}")
+    try:
+        history = ticker.history(period="5d", auto_adjust=False)
+    except Exception as exc:
+        network_errors.append(str(exc))
+        history = None
 
-    current_price = _safe_float(info.get("currentPrice")) or _safe_float(info.get("regularMarketPrice"))
-    market_cap = _safe_float(info.get("marketCap"))
+    if not info and not fast_info and (history is None or history.empty):
+        combined_errors = " | ".join(network_errors).lower()
+        if "could not resolve host" in combined_errors or "curl: (6)" in combined_errors:
+            raise ValueError(
+                "Yahoo Finance is not reachable from the app environment right now. "
+                "This is a network/DNS issue, not an invalid ticker."
+            )
+        raise ValueError(f"Unable to fetch web data for ticker: {cleaned_symbol}")
+
+    current_price = (
+        _safe_float(info.get("currentPrice"))
+        or _safe_float(info.get("regularMarketPrice"))
+        or _safe_float(fast_info.get("lastPrice"))
+        or _safe_float(fast_info.get("regularMarketPrice"))
+    )
+    if current_price is None and history is not None and not history.empty and "Close" in history.columns:
+        current_price = _safe_float(history["Close"].dropna().iloc[-1]) if not history["Close"].dropna().empty else None
+
+    market_cap = _safe_float(info.get("marketCap")) or _safe_float(fast_info.get("marketCap"))
     pe = _safe_float(info.get("trailingPE")) or _safe_float(info.get("forwardPE"))
     pb = _safe_float(info.get("priceToBook"))
     roe = _safe_float(info.get("returnOnEquity"))
