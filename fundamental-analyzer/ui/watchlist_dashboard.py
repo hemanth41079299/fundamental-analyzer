@@ -6,7 +6,7 @@ import pandas as pd
 import streamlit as st
 
 from services.watchlist_intelligence_service import build_watchlist_intelligence
-from ui.design_system import render_empty_state, render_section_header, render_status_badge
+from ui.design_system import render_empty_state, render_page_header, render_section_header, render_status_badge
 from ui.layout_helpers import create_columns
 from ui.news_alerts_dashboard import render_news_alerts_dashboard, render_recent_news_table
 from ui.ui_theme import apply_finance_theme
@@ -34,9 +34,10 @@ def render_watchlist_dashboard(user_id: int) -> None:
     alerts = list(intelligence.get("alerts", []))
     source_errors = list(intelligence.get("source_errors", []))
 
-    render_section_header(
+    render_page_header(
         "Watchlist Dashboard",
-        "Ranked watchlist names, alert tracking, and valuation changes from the latest saved company research.",
+        "Dynamic watchlist ranking with catalysts, alerts, valuation signals, and latest classified news.",
+        badges=[("Smart Ranking", "info"), ("Catalyst Lens", "positive")],
     )
 
     if not ranked_watchlist:

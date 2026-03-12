@@ -10,7 +10,7 @@ import streamlit as st
 from config.settings import SUPPORTED_OPERATORS
 from models.rule_model import Rule
 from services.rule_service import RuleService
-from ui.design_system import render_section_header, render_status_badge
+from ui.design_system import render_action_bar, render_section_header, render_status_badge
 from ui.ui_theme import apply_finance_theme
 
 
@@ -27,6 +27,17 @@ def render_rules_editor(rule_service: RuleService, category: str, rule_source: s
     render_section_header(
         "Rules Manager",
         f"Editing the {category.replace('_', ' ').title()} framework used by the current analysis.",
+    )
+    preview_frame = pd.DataFrame([rule.to_dict() for rule in rules]).fillna("")
+    grouped_categories = [value for value in sorted(preview_frame["category"].astype(str).unique()) if value and value.lower() != "none"]
+    render_action_bar(
+        "Rule framework",
+        "Edit thresholds, operators, labels, and rationale. Save to persist a user-scoped custom profile.",
+        badges=[
+            (category.replace("_", " ").title(), "info"),
+            (f"{len(rules)} rules", "neutral"),
+            ("Grouped" if grouped_categories else "Flat", "warning"),
+        ],
     )
     editor_data = pd.DataFrame([rule.to_dict() for rule in rules])
     edited_data = st.data_editor(
@@ -85,6 +96,14 @@ def render_rules_editor(rule_service: RuleService, category: str, rule_source: s
             key=f"download_rules_{category}",
             use_container_width=True,
         )
+
+    if grouped_categories:
+        render_section_header("Category Preview", "Quick grouped preview of the active rule set before saving.")
+        preview_tabs = st.tabs([group.title() for group in grouped_categories])
+        for tab, group in zip(preview_tabs, grouped_categories):
+            with tab:
+                group_frame = editor_data[editor_data["category"].fillna("").astype(str) == group].copy()
+                st.dataframe(group_frame, use_container_width=True, hide_index=True)
 
     render_section_header("Import Rule Profile", "Replace the current custom rules for this bucket with a validated JSON profile.")
     uploaded_profile = st.file_uploader(

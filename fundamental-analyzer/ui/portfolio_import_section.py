@@ -7,7 +7,7 @@ from datetime import date
 import streamlit as st
 
 from services.portfolio_import_service import IMPORT_MODE_LABELS, build_portfolio_import_preview, import_portfolio_holdings
-from ui.design_system import render_insight_card, render_section_header, render_status_badge
+from ui.design_system import render_action_bar, render_insight_card, render_page_header, render_section_header, render_status_badge
 from ui.layout_helpers import create_columns
 from ui.ui_theme import apply_finance_theme
 
@@ -15,9 +15,15 @@ from ui.ui_theme import apply_finance_theme
 def render_portfolio_import_section() -> None:
     """Render the holdings import workflow."""
     apply_finance_theme()
-    render_section_header(
-        "Portfolio Holdings Import",
-        "Upload CSV, Excel, or holdings-style PDF files and convert them into BUY transactions after preview.",
+    render_page_header(
+        "Portfolio Import",
+        "Import CSV, Excel, or holdings-style PDF files, preview normalized positions, and convert them into BUY transactions safely.",
+        badges=[("Preview First", "info"), ("Ledger Safe", "positive")],
+    )
+    render_action_bar(
+        "Import workflow",
+        "Upload file, preview normalized holdings, validate rows, and confirm ledger import.",
+        badges=[("CSV / Excel / PDF", "neutral"), ("Default: BUY mode", "warning")],
     )
 
     left_column, right_column = create_columns([1.6, 1])

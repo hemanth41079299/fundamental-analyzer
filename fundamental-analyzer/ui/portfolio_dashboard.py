@@ -13,12 +13,14 @@ from services.portfolio_impact_summary_service import build_portfolio_impact_sum
 from services.portfolio_intelligence_service import build_portfolio_intelligence
 from services.portfolio_news_service import build_portfolio_news_monitor
 from ui.design_system import (
+    render_action_bar,
     format_currency,
     format_percentage,
     render_chart_card,
     render_empty_state,
     render_insight_card,
     render_kpi_row,
+    render_page_header,
     render_section_header,
     render_status_badge,
 )
@@ -129,9 +131,15 @@ def render_portfolio_dashboard(
 ) -> None:
     """Render the main portfolio dashboard page."""
     apply_finance_theme()
-    render_section_header(
+    render_page_header(
         "Portfolio Dashboard",
-        f"Updated on: {datetime.now().strftime('%Y-%m-%d %H:%M')} | Original broker-style analytics layout",
+        f"Updated on {datetime.now().strftime('%Y-%m-%d %H:%M')} | Premium broker-style analytics workspace for holdings, performance, risk, and news flow.",
+        badges=[("Live Portfolio", "positive"), ("Impact Layer", "info")],
+    )
+    render_action_bar(
+        "Dashboard flow",
+        "Performance, allocation, holdings intelligence, risk alerts, and macro/news mapping are grouped into premium cards.",
+        badges=[("Hero Chart", "neutral"), ("Health Score", "warning"), ("News-Aware", "info")],
     )
 
     if holdings.empty:

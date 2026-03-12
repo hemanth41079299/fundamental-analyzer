@@ -18,6 +18,46 @@ Fundamental Analyzer is a local Streamlit equity research platform. It combines 
 - Company research history stored in PostgreSQL
 - Portfolio news, policy, macro, and geopolitical impact mapping for holdings and watchlist names
 
+## UI Theme System
+
+The app includes a centralized reusable UI system for a premium finance-style experience.
+
+Theme modes:
+
+- `Light`
+- `Dark`
+
+Theme behavior:
+
+- theme selection is stored in Streamlit `session_state`
+- the sidebar exposes a visible light/dark toggle
+- both modes update cards, forms, tables, badges, chart containers, and page headers
+
+Core UI files:
+
+- `ui/ui_theme.py`
+- `ui/design_system.py`
+- `ui/layout_helpers.py`
+
+The design system is intended to be extended through reusable primitives such as:
+
+- page headers
+- KPI cards
+- insight cards
+- status badges
+- empty states
+- chart cards
+- form cards
+- table wrappers
+- action bars
+
+To extend the design system later:
+
+1. add new tokens in `ui/ui_theme.py`
+2. keep shared UI primitives in `ui/design_system.py`
+3. use `layout_helpers.py` for page structure instead of ad hoc spacing
+4. avoid scattering inline styles across page modules
+
 ## Workspaces
 
 The app has two top-level workspaces in the sidebar.

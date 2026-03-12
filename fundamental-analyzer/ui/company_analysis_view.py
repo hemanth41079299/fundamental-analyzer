@@ -25,6 +25,7 @@ from ui.design_system import (
     format_percentage,
     render_empty_state,
     render_kpi_row,
+    render_page_header,
     render_section_header,
     render_status_badge,
 )
@@ -57,20 +58,15 @@ def _render_company_header(
     """Render the company analysis header."""
     apply_finance_theme()
     company_name = company_data.company_name or "Unknown Company"
-    st.markdown('<div class="finance-page-header">', unsafe_allow_html=True)
-    st.markdown(f"<h2>{company_name}</h2>", unsafe_allow_html=True)
-    st.markdown(
-        f'<div class="finance-page-subtitle">Source: {source_label} | Category: {market_cap_category.replace("_", " ").title()}</div>',
-        unsafe_allow_html=True,
+    render_page_header(
+        company_name,
+        f"Source: {source_label} | Category: {market_cap_category.replace('_', ' ').title()} | Premium research workspace with valuation, risk, thesis, and news layers.",
+        badges=[
+            (market_cap_category.replace("_", " ").title(), "info"),
+            ("Custom Rules" if rule_source == "custom" else "Default Rules", "neutral"),
+            ("Research Workspace", "positive"),
+        ],
     )
-    st.markdown("</div>", unsafe_allow_html=True)
-    badge_columns = st.columns(3)
-    with badge_columns[0]:
-        render_status_badge(market_cap_category.replace("_", " ").title(), tone="info")
-    with badge_columns[1]:
-        render_status_badge("Custom Rules" if rule_source == "custom" else "Default Rules", tone="neutral")
-    with badge_columns[2]:
-        render_status_badge("Research Workspace", tone="positive")
 
 
 def _render_company_snapshot(company_data: CompanyData, analysis_result: AnalysisResult) -> None:

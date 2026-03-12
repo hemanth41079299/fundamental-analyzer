@@ -27,6 +27,7 @@ from ui.bulk_analysis_section import render_bulk_analysis_section
 from ui.cash_ledger_section import render_cash_ledger_section
 from ui.admin_user_approvals_page import render_admin_user_approvals_page
 from ui.company_analysis_view import render_company_analysis_view
+from ui.design_system import render_page_header, render_status_badge
 from ui.import_export_section import render_import_export_section
 from ui.login_page import render_login_page
 from ui.narration_section import render_narration
@@ -42,6 +43,7 @@ from ui.settings_page import render_settings_page
 from ui.transaction_form import render_transaction_form
 from ui.watchlist_dashboard import render_watchlist_dashboard
 from ui.watchlist_section import render_watchlist_section
+from ui.ui_theme import apply_finance_theme, render_theme_toggle
 from ui.upload_section import (
     render_bulk_analysis_upload_section,
     render_company_search_section,
@@ -189,8 +191,12 @@ def _render_portfolio_manager() -> None:
 
 def _render_auth_screen() -> None:
     """Render login and registration tabs for unauthenticated users."""
-    st.subheader("Secure Access")
-    st.caption("Public pages: Login and Register. All research, portfolio, rules, history, and settings pages require authentication.")
+    apply_finance_theme()
+    render_page_header(
+        APP_TITLE,
+        "Premium multi-user investing workspace. Public access is limited to login and registration.",
+        badges=[("Light / Dark Theme", "info"), ("Protected Research", "warning")],
+    )
     login_tab, register_tab = st.tabs(["Login", "Register"])
     with login_tab:
         render_login_page()
@@ -201,14 +207,13 @@ def _render_auth_screen() -> None:
 def main() -> None:
     """Run the Streamlit UI workflow."""
     st.set_page_config(page_title=APP_TITLE, layout="wide")
+    apply_finance_theme()
     try:
         init_db()
     except ValueError as exc:
         st.error(str(exc))
         return
     initialize_auth_state()
-    st.title(APP_TITLE)
-    st.caption("Modular equity research platform for company analysis, persistent portfolio tracking, and news-impact monitoring.")
 
     if enforce_session_timeout():
         st.warning("Your session expired due to inactivity. Please log in again.")
@@ -229,20 +234,27 @@ def main() -> None:
     touch_session_activity()
 
     with st.sidebar:
-        st.markdown("### Account")
+        st.markdown("## Fundamental Analyzer")
+        st.caption("Premium equity research and portfolio intelligence")
+        render_theme_toggle(location="sidebar", key="sidebar_theme_mode")
+        render_status_badge(str(current_user.get("approval_status", "approved")).title(), tone="info")
         st.caption(str(current_user["name"]))
         st.caption(str(current_user["email"]))
         if st.button("Logout", use_container_width=True):
             logout_user()
             st.rerun()
-        workspace_options = ["Company Analysis", "Portfolio Manager", "Settings"]
+        nav_groups = ["Research", "Portfolio", "Account"]
         if is_admin_user():
-            workspace_options.append("Admin Approvals")
-        workspace = st.radio(
-            "Workspace",
-            options=workspace_options,
-            index=0,
-        )
+            nav_groups.append("Admin")
+        nav_group = st.radio("Navigation", options=nav_groups, index=0, key="app_nav_group")
+        if nav_group == "Research":
+            workspace = "Company Analysis"
+        elif nav_group == "Portfolio":
+            workspace = "Portfolio Manager"
+        elif nav_group == "Account":
+            workspace = "Settings"
+        else:
+            workspace = "Admin Approvals"
 
     if workspace == "Settings":
         render_settings_page(current_user)

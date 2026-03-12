@@ -8,7 +8,7 @@ import streamlit as st
 from services.audit_service import log_audit_event
 from services.auth_service import require_admin
 from services.user_service import list_pending_users, update_user_approval_status
-from ui.design_system import render_empty_state, render_section_header, render_status_badge
+from ui.design_system import render_empty_state, render_kpi_row, render_page_header, render_section_header, render_status_badge
 from ui.ui_theme import apply_finance_theme
 
 
@@ -17,15 +17,23 @@ def render_admin_user_approvals_page() -> None:
     apply_finance_theme()
     require_admin()
 
-    render_section_header(
-        "User Approvals",
-        "Review pending registrations and approve or reject access to the platform.",
+    render_page_header(
+        "Admin User Approvals",
+        "Review pending registrations, approve access, reject requests, and keep onboarding controlled.",
+        badges=[("Admin Only", "warning")],
     )
 
     pending_users = list_pending_users()
     if not pending_users:
         render_empty_state("No pending users", "All current registrations have already been reviewed.")
         return
+
+    render_kpi_row(
+        [
+            {"title": "Pending Users", "value": str(len(pending_users)), "delta": "Awaiting review"},
+            {"title": "Approval Mode", "value": "Manual", "delta": "Admin-controlled onboarding"},
+        ]
+    )
 
     st.markdown('<div class="finance-side-card">', unsafe_allow_html=True)
     render_status_badge(f"{len(pending_users)} pending", tone="warning")
@@ -57,8 +65,8 @@ def render_admin_user_approvals_page() -> None:
     action_column, note_column = st.columns([0.9, 1.4])
     with action_column:
         st.markdown('<div class="finance-side-card">', unsafe_allow_html=True)
-        render_status_badge("Approval Action", tone="info")
-        render_section_header("Approve User", "Approving activates login access immediately.")
+        render_status_badge("Approve", tone="positive")
+        render_section_header("Approve User", "Approving activates login access immediately and enables access to protected views.")
         if st.button("Approve Selected User", use_container_width=True):
             update_user_approval_status(
                 user_id=int(selected_user["id"]),
@@ -76,7 +84,7 @@ def render_admin_user_approvals_page() -> None:
 
     with note_column:
         st.markdown('<div class="finance-side-card">', unsafe_allow_html=True)
-        render_status_badge("Rejection Action", tone="warning")
+        render_status_badge("Reject", tone="warning")
         render_section_header("Reject User", "Rejecting keeps the account inactive and stores an optional reason.")
         rejection_reason = st.text_area(
             "Optional rejection reason",

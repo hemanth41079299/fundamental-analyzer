@@ -6,20 +6,32 @@ import streamlit as st
 
 from config.settings import AUTH_MIN_PASSWORD_LENGTH
 from services.auth_service import register_user
-from ui.design_system import render_section_header, render_status_badge
+from ui.design_system import render_insight_card, render_page_header, render_status_badge
+from ui.layout_helpers import centered_auth_columns
 from ui.ui_theme import apply_finance_theme
 
 
 def render_register_page() -> None:
     """Render the registration form."""
     apply_finance_theme()
-    _, center_column, _ = st.columns([1, 1.2, 1])
-    with center_column:
-        st.markdown('<div class="finance-side-card">', unsafe_allow_html=True)
-        render_status_badge("New Account", tone="neutral")
-        render_section_header(
-            "Create Your Workspace",
-            "Set up a private account to manage research history, portfolio tracking, and custom rule profiles.",
+    left_column, right_column = centered_auth_columns()
+    with left_column:
+        st.markdown('<div class="finance-hero-panel">', unsafe_allow_html=True)
+        render_page_header(
+            "Build your private investing workspace",
+            "Create a user-scoped account for portfolio tracking, saved research history, custom rules, and watchlist intelligence.",
+            badges=[("Approval Flow", "warning"), ("Multi-user", "info")],
+        )
+        render_insight_card("Workspace", "User-isolated data", "Portfolio, uploads, history, and custom rules are stored per account.", "positive")
+        render_insight_card("Rules", "Customizable framework", "Default rules can be overridden with your own market-cap profiles.", "info")
+        render_insight_card("Access", "Manual approval", "New registrations stay pending until approved by the administrator.", "warning")
+        st.markdown("</div>", unsafe_allow_html=True)
+    with right_column:
+        st.markdown('<div class="finance-auth-card">', unsafe_allow_html=True)
+        st.markdown('<div class="finance-auth-kicker">Create account</div>', unsafe_allow_html=True)
+        render_page_header(
+            "Open your account",
+            "Register to unlock portfolio dashboards, research pages, watchlists, and private rule management.",
         )
         with st.form("register_form", clear_on_submit=False):
             name = st.text_input("Full Name", placeholder="Your name")
