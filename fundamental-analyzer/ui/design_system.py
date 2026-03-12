@@ -1,4 +1,4 @@
-"""Reusable premium UI primitives for the finance app."""
+"""Compatibility design helpers backed by the new component system."""
 
 from __future__ import annotations
 
@@ -8,122 +8,88 @@ from typing import Callable
 import pandas as pd
 import streamlit as st
 
-from ui.ui_theme import apply_finance_theme
+from ui.components.kpi_card import render_kpi_card as component_kpi_card
+from ui.components.section_header import render_page_header as component_page_header
+from ui.components.section_header import render_section_header as component_section_header
+from ui.components.status_badge import render_status_badge as component_status_badge
+from ui.theme import apply_theme_css, get_theme
 
 
 def render_page_header(title: str, subtitle: str, badges: list[tuple[str, str]] | None = None) -> None:
-    """Render a premium page header with optional status badges."""
-    apply_finance_theme()
-    badge_html = ""
+    """Render a page header and optional badges."""
+    apply_theme_css()
+    component_page_header(title, subtitle)
     if badges:
-        parts = []
-        for label, tone in badges:
-            tone_class = {
-                "positive": "finance-badge-positive",
-                "warning": "finance-badge-warning",
-                "negative": "finance-badge-negative",
-                "info": "finance-badge-info",
-                "neutral": "finance-badge-neutral",
-            }.get(tone, "finance-badge-neutral")
-            parts.append(f'<span class="finance-badge {tone_class}">{html.escape(label)}</span>')
-        badge_html = f'<div class="finance-page-status-row">{"".join(parts)}</div>'
-
-    st.markdown(
-        f"""
-        <div class="finance-page-header">
-            <h1>{html.escape(title)}</h1>
-            <div class="finance-page-subtitle">{html.escape(subtitle)}</div>
-            {badge_html}
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+        badge_columns = st.columns(len(badges))
+        for column, (label, tone) in zip(badge_columns, badges):
+            with column:
+                component_status_badge(label, tone="risk" if tone == "negative" else "watch" if tone == "warning" else tone)
 
 
 def render_section_header(title: str, caption: str | None = None) -> None:
     """Render a section header."""
-    apply_finance_theme()
-    caption_html = f'<div class="finance-section-caption">{html.escape(caption)}</div>' if caption else ""
-    st.markdown(
-        f"""
-        <div class="finance-section-header">
-            <h3>{html.escape(title)}</h3>
-            {caption_html}
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    component_section_header(title, caption)
 
 
 def render_status_badge(label: str, tone: str = "neutral") -> None:
     """Render a status badge."""
-    apply_finance_theme()
-    tone_class = {
-        "positive": "finance-badge-positive",
-        "warning": "finance-badge-warning",
-        "negative": "finance-badge-negative",
-        "info": "finance-badge-info",
-        "neutral": "finance-badge-neutral",
-    }.get(tone, "finance-badge-neutral")
-    st.markdown(f'<span class="finance-badge {tone_class}">{html.escape(label)}</span>', unsafe_allow_html=True)
+    tone_map = {
+        "positive": "positive",
+        "warning": "watch",
+        "negative": "risk",
+        "info": "info",
+        "neutral": "info",
+        "watch": "watch",
+        "risk": "risk",
+    }
+    component_status_badge(label, tone=tone_map.get(tone, "info"))
 
 
 def render_kpi_card(title: str, value: str, delta_text: str | None = None, help_text: str | None = None) -> None:
-    """Render one KPI card."""
-    apply_finance_theme()
-    st.markdown(
-        f"""
-        <div class="finance-card">
-            <div class="finance-card-title">{html.escape(title)}</div>
-            <div class="finance-card-value">{html.escape(value)}</div>
-            {'<div class="finance-card-delta">' + html.escape(delta_text) + '</div>' if delta_text else ''}
-            {'<div class="finance-card-help">' + html.escape(help_text) + '</div>' if help_text else ''}
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    """Render a KPI card."""
+    component_kpi_card(title, value, change=delta_text or help_text)
 
 
 def render_kpi_row(cards: list[dict[str, str | None]]) -> None:
     """Render a row of KPI cards."""
-    apply_finance_theme()
     columns = st.columns(len(cards))
     for column, card in zip(columns, cards):
         with column:
-            render_kpi_card(
-                title=str(card.get("title", "")),
-                value=str(card.get("value", "NA")),
-                delta_text=card.get("delta"),
-                help_text=card.get("help"),
+            component_kpi_card(
+                str(card.get("title", "")),
+                str(card.get("value", "NA")),
+                change=card.get("delta") or card.get("help"),
             )
 
 
 def render_chart_card(title: str, render_chart: Callable[[], None], caption: str | None = None) -> None:
-    """Render a chart inside a premium card."""
-    apply_finance_theme()
-    st.markdown('<div class="finance-chart-card">', unsafe_allow_html=True)
-    render_section_header(title, caption)
+    """Render a chart card wrapper."""
+    apply_theme_css()
+    st.markdown('<div class="ui-chart-card">', unsafe_allow_html=True)
+    component_section_header(title, caption)
     render_chart()
     st.markdown("</div>", unsafe_allow_html=True)
 
 
-def render_insight_card(label: str, value: str, meta: str | None = None, tone: str = "neutral") -> None:
-    """Render an insight mini-card."""
-    apply_finance_theme()
+def render_insight_card(label: str, value: str, meta: str | None = None, tone: str = "info") -> None:
+    """Render an insight card."""
+    apply_theme_css()
     tone_class = {
-        "positive": "finance-badge-positive",
-        "warning": "finance-badge-warning",
-        "negative": "finance-badge-negative",
-        "info": "finance-badge-info",
-        "neutral": "finance-badge-neutral",
-    }.get(tone, "finance-badge-neutral")
-    meta_html = f'<div class="finance-insight-meta">{html.escape(meta)}</div>' if meta else ""
+        "positive": "ui-badge-positive",
+        "warning": "ui-badge-watch",
+        "negative": "ui-badge-risk",
+        "risk": "ui-badge-risk",
+        "watch": "ui-badge-watch",
+        "info": "ui-badge-info",
+        "neutral": "ui-badge-info",
+    }.get(tone, "ui-badge-info")
+    meta_html = f'<div class="ui-caption">{html.escape(meta)}</div>' if meta else ""
     st.markdown(
         f"""
-        <div class="finance-insight-card">
-            <div class="finance-insight-label">{html.escape(label)}</div>
-            <div class="finance-insight-value">{html.escape(value)}</div>
-            <span class="finance-badge {tone_class}">{html.escape(tone.title())}</span>
+        <div class="ui-card">
+            <div class="ui-kpi-label">{html.escape(label)}</div>
+            <div class="ui-card-title" style="font-size:18px; margin-bottom:8px;">{html.escape(value)}</div>
+            <div style="margin-bottom:10px;"><span class="ui-badge {tone_class}">{html.escape(tone.title())}</span></div>
             {meta_html}
         </div>
         """,
@@ -132,22 +98,31 @@ def render_insight_card(label: str, value: str, meta: str | None = None, tone: s
 
 
 def render_action_bar(title: str, caption: str | None = None, badges: list[tuple[str, str]] | None = None) -> None:
-    """Render an action bar container header."""
-    apply_finance_theme()
-    badge_html = ""
+    """Render an action bar."""
+    apply_theme_css()
+    badges_html = ""
     if badges:
-        badge_html = "".join(
-            f'<span class="finance-badge finance-badge-{"info" if tone not in {"positive","warning","negative","neutral","info"} else tone}">{html.escape(label)}</span>'
-            for label, tone in badges
-        )
+        parts = []
+        for label, tone in badges:
+            tone_class = {
+                "positive": "ui-badge-positive",
+                "warning": "ui-badge-watch",
+                "negative": "ui-badge-risk",
+                "info": "ui-badge-info",
+                "neutral": "ui-badge-info",
+            }.get(tone, "ui-badge-info")
+            parts.append(f'<span class="ui-badge {tone_class}">{html.escape(label)}</span>')
+        badges_html = "".join(parts)
     st.markdown(
         f"""
-        <div class="finance-action-bar">
-            <div>
-                <div class="finance-card-title">{html.escape(title)}</div>
-                {'<div class="finance-card-help">' + html.escape(caption) + '</div>' if caption else ''}
+        <div class="ui-card" style="padding:16px; margin-bottom:16px;">
+            <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:flex-start;">
+                <div>
+                    <div class="ui-card-title">{html.escape(title)}</div>
+                    {'<div class="ui-caption">' + html.escape(caption) + '</div>' if caption else ''}
+                </div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">{badges_html}</div>
             </div>
-            <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">{badge_html}</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -155,34 +130,34 @@ def render_action_bar(title: str, caption: str | None = None, badges: list[tuple
 
 
 def render_table_card(title: str, frame: pd.DataFrame, caption: str | None = None) -> None:
-    """Render a dataframe inside a card wrapper."""
-    apply_finance_theme()
-    st.markdown('<div class="finance-table-card">', unsafe_allow_html=True)
-    render_section_header(title, caption)
+    """Render a dataframe inside a card."""
+    apply_theme_css()
+    st.markdown('<div class="ui-table-card">', unsafe_allow_html=True)
+    component_section_header(title, caption)
     st.dataframe(frame, use_container_width=True, hide_index=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
 
 def render_form_card_start(title: str, caption: str | None = None) -> None:
-    """Open a form card wrapper."""
-    apply_finance_theme()
-    st.markdown('<div class="finance-form-card">', unsafe_allow_html=True)
-    render_section_header(title, caption)
+    """Open a form card."""
+    apply_theme_css()
+    st.markdown('<div class="ui-card">', unsafe_allow_html=True)
+    component_section_header(title, caption)
 
 
 def render_card_end() -> None:
-    """Close a previously opened card wrapper."""
+    """Close a form or generic card."""
     st.markdown("</div>", unsafe_allow_html=True)
 
 
 def render_empty_state(title: str, message: str) -> None:
-    """Render a reusable empty state block."""
-    apply_finance_theme()
+    """Render an empty state."""
+    apply_theme_css()
     st.markdown(
         f"""
-        <div class="finance-empty-state">
-            <h3>{html.escape(title)}</h3>
-            <p>{html.escape(message)}</p>
+        <div class="ui-card" style="text-align:center; border-style:dashed;">
+            <div class="ui-card-title" style="font-size:18px;">{html.escape(title)}</div>
+            <div class="ui-caption">{html.escape(message)}</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -190,7 +165,7 @@ def render_empty_state(title: str, message: str) -> None:
 
 
 def format_currency(value: object) -> str:
-    """Format a numeric value as finance-friendly currency text."""
+    """Format currency."""
     try:
         if value is None or pd.isna(value):
             return "NA"
@@ -200,7 +175,7 @@ def format_currency(value: object) -> str:
 
 
 def format_percentage(value: object) -> str:
-    """Format a numeric value as finance-friendly percentage text."""
+    """Format percent."""
     try:
         if value is None or pd.isna(value):
             return "NA"
@@ -210,25 +185,28 @@ def format_percentage(value: object) -> str:
 
 
 def gain_loss_style(value: object) -> str:
-    """Return gain or loss styling for numeric values."""
+    """Return positive/negative numeric style."""
+    theme = get_theme()
     try:
         if value is None or pd.isna(value):
             return ""
-        numeric_value = float(value)
+        numeric = float(value)
     except (TypeError, ValueError):
         return ""
-
-    if numeric_value > 0:
-        return "color: #16a34a; font-weight: 700;"
-    if numeric_value < 0:
-        return "color: #ef4444; font-weight: 700;"
-    return "color: #94a3b8; font-weight: 700;"
+    if numeric > 0:
+        return f"color: {theme['positive_text']}; font-weight: 700;"
+    if numeric < 0:
+        return f"color: {theme['negative_text']}; font-weight: 700;"
+    return f"color: {theme['caption_text']}; font-weight: 600;"
 
 
 def badge_style(value: object, palette: dict[str, str]) -> str:
-    """Return inline badge styling for styled tables."""
-    label = str(value or "Unknown")
-    return palette.get(
-        label,
-        "background-color: rgba(148,163,184,0.16); color: #475569; border-radius: 999px; padding: 0.24rem 0.58rem; font-weight: 700;",
+    """Return inline badge style."""
+    theme = get_theme()
+    default_style = (
+        f"background-color: {theme['info_background']}; "
+        f"color: {theme['info_text']}; "
+        f"border: 1px solid {theme['border']}; "
+        "border-radius: 999px; padding: 0.2rem 0.5rem;"
     )
+    return palette.get(str(value or "Unknown"), default_style)

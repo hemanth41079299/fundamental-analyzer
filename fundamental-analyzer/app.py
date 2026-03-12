@@ -27,7 +27,8 @@ from ui.bulk_analysis_section import render_bulk_analysis_section
 from ui.cash_ledger_section import render_cash_ledger_section
 from ui.admin_user_approvals_page import render_admin_user_approvals_page
 from ui.company_analysis_view import render_company_analysis_view
-from ui.design_system import render_page_header, render_status_badge
+from ui.components.section_header import render_page_header
+from ui.components.status_badge import render_status_badge
 from ui.import_export_section import render_import_export_section
 from ui.login_page import render_login_page
 from ui.narration_section import render_narration
@@ -43,7 +44,7 @@ from ui.settings_page import render_settings_page
 from ui.transaction_form import render_transaction_form
 from ui.watchlist_dashboard import render_watchlist_dashboard
 from ui.watchlist_section import render_watchlist_section
-from ui.ui_theme import apply_finance_theme, render_theme_toggle
+from ui.theme import apply_theme_css
 from ui.upload_section import (
     render_bulk_analysis_upload_section,
     render_company_search_section,
@@ -89,13 +90,14 @@ def _render_portfolio_manager() -> None:
         return
 
     with st.sidebar:
-        st.markdown("### Portfolio Manager")
+        st.markdown("### Portfolio")
         portfolio_section = st.radio(
             "Portfolio section",
             options=[
                 "Dashboard",
-                "Transactions",
                 "Holdings",
+                "Transactions",
+                "Import / Export",
                 "Cash",
                 "Watchlist",
                 "Watchlist Dashboard",
@@ -103,7 +105,6 @@ def _render_portfolio_manager() -> None:
                 "Risk Monitor",
                 "Allocation",
                 "History",
-                "Import / Export",
             ],
             index=0,
             key="portfolio_section",
@@ -191,11 +192,10 @@ def _render_portfolio_manager() -> None:
 
 def _render_auth_screen() -> None:
     """Render login and registration tabs for unauthenticated users."""
-    apply_finance_theme()
+    apply_theme_css()
     render_page_header(
         APP_TITLE,
-        "Premium multi-user investing workspace. Public access is limited to login and registration.",
-        badges=[("Light / Dark Theme", "info"), ("Protected Research", "warning")],
+        "Professional multi-user investing workspace. Public access is limited to login and registration.",
     )
     login_tab, register_tab = st.tabs(["Login", "Register"])
     with login_tab:
@@ -207,7 +207,7 @@ def _render_auth_screen() -> None:
 def main() -> None:
     """Run the Streamlit UI workflow."""
     st.set_page_config(page_title=APP_TITLE, layout="wide")
-    apply_finance_theme()
+    apply_theme_css()
     try:
         init_db()
     except ValueError as exc:
@@ -235,22 +235,40 @@ def main() -> None:
 
     with st.sidebar:
         st.markdown("## Fundamental Analyzer")
-        st.caption("Premium equity research and portfolio intelligence")
-        render_theme_toggle(location="sidebar", key="sidebar_theme_mode")
+        st.markdown(
+            '<div class="ui-sidebar-profile-email">Professional equity research and portfolio intelligence</div>',
+            unsafe_allow_html=True,
+        )
         render_status_badge(str(current_user.get("approval_status", "approved")).title(), tone="info")
-        st.caption(str(current_user["name"]))
-        st.caption(str(current_user["email"]))
+        st.markdown(f'<div class="ui-sidebar-profile-name">{current_user["name"]}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="ui-sidebar-profile-email">{current_user["email"]}</div>', unsafe_allow_html=True)
         if st.button("Logout", use_container_width=True):
             logout_user()
             st.rerun()
-        nav_groups = ["Research", "Portfolio", "Account"]
+        st.markdown("---")
+        st.markdown('<div class="ui-sidebar-group-label">Dashboard</div>', unsafe_allow_html=True)
+        st.markdown('<div class="ui-sidebar-group-label">Portfolio</div>', unsafe_allow_html=True)
+        st.markdown('<div class="ui-sidebar-group-label">Research</div>', unsafe_allow_html=True)
+        st.markdown('<div class="ui-sidebar-group-label">Monitoring</div>', unsafe_allow_html=True)
+        st.markdown('<div class="ui-sidebar-group-label">Tools</div>', unsafe_allow_html=True)
+        st.markdown('<div class="ui-sidebar-group-label">Account</div>', unsafe_allow_html=True)
+        nav_groups = ["Dashboard", "Portfolio", "Research", "Monitoring", "Tools", "Account"]
         if is_admin_user():
+            st.markdown('<div class="ui-sidebar-group-label">Admin</div>', unsafe_allow_html=True)
             nav_groups.append("Admin")
         nav_group = st.radio("Navigation", options=nav_groups, index=0, key="app_nav_group")
-        if nav_group == "Research":
-            workspace = "Company Analysis"
+        if nav_group == "Dashboard":
+            workspace = "Portfolio Manager"
+            st.session_state["portfolio_section"] = "Dashboard"
         elif nav_group == "Portfolio":
             workspace = "Portfolio Manager"
+        elif nav_group == "Research":
+            workspace = "Company Analysis"
+        elif nav_group == "Monitoring":
+            workspace = "Portfolio Manager"
+            st.session_state["portfolio_section"] = "Risk Monitor"
+        elif nav_group == "Tools":
+            workspace = "Company Analysis"
         elif nav_group == "Account":
             workspace = "Settings"
         else:

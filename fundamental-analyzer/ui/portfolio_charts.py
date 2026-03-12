@@ -7,6 +7,8 @@ from datetime import timedelta
 import pandas as pd
 import streamlit as st
 
+from ui.theme import get_plotly_layout
+
 
 def _filter_snapshot_range(snapshot_df: pd.DataFrame, range_label: str) -> pd.DataFrame:
     """Filter snapshots to a selected trailing range."""
@@ -27,8 +29,6 @@ def _filter_snapshot_range(snapshot_df: pd.DataFrame, range_label: str) -> pd.Da
 
 def render_portfolio_performance_chart(snapshot_df: pd.DataFrame) -> None:
     """Render the main portfolio performance chart."""
-    st.subheader("Portfolio Performance")
-
     if snapshot_df.empty:
         st.info("Save a portfolio snapshot to start building a performance chart.")
         return
@@ -38,6 +38,7 @@ def render_portfolio_performance_chart(snapshot_df: pd.DataFrame) -> None:
     except ModuleNotFoundError:
         st.info("Install plotly to view portfolio charts: pip install plotly")
         return
+    theme = get_plotly_layout()
 
     range_label = st.radio(
         "Date range",
@@ -61,7 +62,7 @@ def render_portfolio_performance_chart(snapshot_df: pd.DataFrame) -> None:
             y=frame["portfolio_value"],
             mode="lines",
             name="Portfolio Value",
-            line={"color": "#155eef", "width": 3},
+            line={"color": theme["accent"], "width": 3},
         )
     )
     fig.add_trace(
@@ -70,7 +71,7 @@ def render_portfolio_performance_chart(snapshot_df: pd.DataFrame) -> None:
             y=frame["invested_amount"],
             mode="lines",
             name="Invested Value",
-            line={"color": "#98a2b3", "width": 2, "dash": "dash"},
+            line={"color": theme["grid_color"], "width": 2, "dash": "dash"},
         )
     )
     fig.add_trace(
@@ -79,24 +80,24 @@ def render_portfolio_performance_chart(snapshot_df: pd.DataFrame) -> None:
             y=frame["total_net_worth"],
             mode="lines",
             name="Net Worth",
-            line={"color": "#12b76a", "width": 2.5},
+            line={"color": theme["positive"], "width": 2.5},
         )
     )
     fig.update_layout(
         height=420,
         margin={"l": 10, "r": 10, "t": 20, "b": 10},
-        paper_bgcolor="#ffffff",
-        plot_bgcolor="#ffffff",
+        paper_bgcolor=theme["paper_bgcolor"],
+        plot_bgcolor=theme["plot_bgcolor"],
+        font={"color": theme["font_color"]},
         legend={"orientation": "h", "y": 1.08, "x": 0},
         xaxis={"title": "", "showgrid": False},
-        yaxis={"title": "", "gridcolor": "#eaecf0", "zeroline": False},
+        yaxis={"title": "", "gridcolor": theme["grid_color"], "zeroline": False},
     )
     st.plotly_chart(fig, use_container_width=True)
 
 
 def render_top_holdings_bar_chart(holdings: pd.DataFrame) -> None:
     """Render a bar chart for the top holdings by current value."""
-    st.subheader("Top Holdings")
     if holdings.empty or "Current Value" not in holdings.columns:
         st.info("No holdings available for the allocation chart.")
         return
@@ -106,6 +107,7 @@ def render_top_holdings_bar_chart(holdings: pd.DataFrame) -> None:
     except ModuleNotFoundError:
         st.info("Install plotly to view portfolio charts: pip install plotly")
         return
+    theme = get_plotly_layout()
 
     frame = holdings.copy()
     frame["Current Value"] = pd.to_numeric(frame["Current Value"], errors="coerce").fillna(0.0)
@@ -119,13 +121,14 @@ def render_top_holdings_bar_chart(holdings: pd.DataFrame) -> None:
         x="Ticker",
         y="Current Value",
         color="Current Value",
-        color_continuous_scale=["#d1e9ff", "#155eef"],
+        color_continuous_scale=[theme["grid_color"], theme["accent"]],
     )
     fig.update_layout(
         height=320,
         margin={"l": 10, "r": 10, "t": 10, "b": 10},
-        paper_bgcolor="#ffffff",
-        plot_bgcolor="#ffffff",
+        paper_bgcolor=theme["paper_bgcolor"],
+        plot_bgcolor=theme["plot_bgcolor"],
+        font={"color": theme["font_color"]},
         coloraxis_showscale=False,
         xaxis_title="",
         yaxis_title="",

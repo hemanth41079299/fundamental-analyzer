@@ -60,7 +60,7 @@ def _render_company_header(
     company_name = company_data.company_name or "Unknown Company"
     render_page_header(
         company_name,
-        f"Source: {source_label} | Category: {market_cap_category.replace('_', ' ').title()} | Premium research workspace with valuation, risk, thesis, and news layers.",
+        f"Source: {source_label} | Category: {market_cap_category.replace('_', ' ').title()} | Professional research workspace with valuation, risk, thesis, and news layers.",
         badges=[
             (market_cap_category.replace("_", " ").title(), "info"),
             ("Custom Rules" if rule_source == "custom" else "Default Rules", "neutral"),

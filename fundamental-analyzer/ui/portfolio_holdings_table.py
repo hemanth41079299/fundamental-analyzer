@@ -6,15 +6,16 @@ import pandas as pd
 import streamlit as st
 
 from ui.design_system import badge_style, format_currency, format_percentage, gain_loss_style, render_empty_state
-from ui.ui_theme import apply_finance_theme
+from ui.theme import apply_theme_css, get_theme
 
 
 def render_portfolio_holdings_table(holdings: pd.DataFrame) -> None:
     """Render the modern portfolio holdings table."""
-    apply_finance_theme()
+    apply_theme_css()
     if holdings.empty:
         render_empty_state("No active holdings", "Add positions to view a live holdings table with analytics and risk context.")
         return
+    theme = get_theme()
 
     display_columns = [
         "Ticker",
@@ -33,16 +34,16 @@ def render_portfolio_holdings_table(holdings: pd.DataFrame) -> None:
     frame = holdings[[column for column in display_columns if column in holdings.columns]].copy()
 
     suggestion_palette = {
-        "Strong Candidate": "background-color: #ecfdf3; color: #027a48; border-radius: 999px; padding: 0.2rem 0.5rem;",
-        "Watchlist Candidate": "background-color: #eff8ff; color: #175cd3; border-radius: 999px; padding: 0.2rem 0.5rem;",
-        "High Quality, Expensive": "background-color: #fff6ed; color: #b54708; border-radius: 999px; padding: 0.2rem 0.5rem;",
-        "Caution Required": "background-color: #fef3f2; color: #b42318; border-radius: 999px; padding: 0.2rem 0.5rem;",
+        "Strong Candidate": f"background-color: {theme['positive_background']}; color: {theme['positive']}; border: 1px solid {theme['border']}; border-radius: 999px; padding: 0.2rem 0.5rem;",
+        "Watchlist Candidate": f"background-color: {theme['info_background']}; color: {theme['accent']}; border: 1px solid {theme['border']}; border-radius: 999px; padding: 0.2rem 0.5rem;",
+        "High Quality, Expensive": f"background-color: {theme['warning_background']}; color: {theme['watch']}; border: 1px solid {theme['border']}; border-radius: 999px; padding: 0.2rem 0.5rem;",
+        "Caution Required": f"background-color: {theme['negative_background']}; color: {theme['risk']}; border: 1px solid {theme['border']}; border-radius: 999px; padding: 0.2rem 0.5rem;",
     }
     risk_palette = {
-        "Low": "background-color: #ecfdf3; color: #027a48; border-radius: 999px; padding: 0.2rem 0.5rem;",
-        "Moderate": "background-color: #fff6ed; color: #b54708; border-radius: 999px; padding: 0.2rem 0.5rem;",
-        "Medium": "background-color: #fff6ed; color: #b54708; border-radius: 999px; padding: 0.2rem 0.5rem;",
-        "High": "background-color: #fef3f2; color: #b42318; border-radius: 999px; padding: 0.2rem 0.5rem;",
+        "Low": f"background-color: {theme['positive_background']}; color: {theme['positive']}; border: 1px solid {theme['border']}; border-radius: 999px; padding: 0.2rem 0.5rem;",
+        "Moderate": f"background-color: {theme['warning_background']}; color: {theme['watch']}; border: 1px solid {theme['border']}; border-radius: 999px; padding: 0.2rem 0.5rem;",
+        "Medium": f"background-color: {theme['warning_background']}; color: {theme['watch']}; border: 1px solid {theme['border']}; border-radius: 999px; padding: 0.2rem 0.5rem;",
+        "High": f"background-color: {theme['negative_background']}; color: {theme['risk']}; border: 1px solid {theme['border']}; border-radius: 999px; padding: 0.2rem 0.5rem;",
     }
 
     styled = (
@@ -62,7 +63,7 @@ def render_portfolio_holdings_table(holdings: pd.DataFrame) -> None:
         .map(lambda value: badge_style(value, risk_palette), subset=["Risk"])
         .set_properties(
             subset=["Ticker", "Company", "Qty", "Score"],
-            **{"font-weight": "600", "color": "#101828"},
+            **{"font-weight": "600", "color": theme["text_primary"]},
         )
         .hide(axis="index")
     )
