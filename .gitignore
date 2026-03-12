@@ -1,0 +1,12 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+fundamental-analyzer/.venv/
+fundamental-analyzer/__pycache__/
+fundamental-analyzer/.pytest_cache/
+fundamental-analyzer/data/portfolio.db
+fundamental-analyzer/data/company_history/
+fundamental-analyzer/uploads/
+fundamental-analyzer/outputs/

@@ -1,0 +1,354 @@
+{
+  "large_cap": [
+    {
+      "category": "Growth",
+      "parameter": "sales_growth_5y",
+      "label": "Sales Growth 5Y",
+      "operator": ">",
+      "value": 10,
+      "rationale": "Large-cap companies should sustain double-digit sales growth."
+    },
+    {
+      "category": "Growth",
+      "parameter": "profit_growth_5y",
+      "label": "Profit Growth 5Y",
+      "operator": ">",
+      "value": 10,
+      "rationale": "Profit growth should keep pace with sales growth."
+    },
+    {
+      "category": "Profitability",
+      "parameter": "roe",
+      "label": "ROE",
+      "operator": ">",
+      "value": 14,
+      "rationale": "ROE above 14% suggests efficient capital allocation."
+    },
+    {
+      "category": "Profitability",
+      "parameter": "roce",
+      "label": "ROCE",
+      "operator": ">",
+      "value": 15,
+      "rationale": "ROCE above 15% indicates healthy operating efficiency."
+    },
+    {
+      "category": "Margins",
+      "parameter": "opm",
+      "label": "OPM",
+      "operator": ">",
+      "value": 18,
+      "rationale": "Operating margin should remain comfortably above 18%."
+    },
+    {
+      "category": "Debt",
+      "parameter": "debt_to_equity",
+      "label": "Debt to Equity",
+      "operator": "<",
+      "value": 1.0,
+      "rationale": "Debt should remain within manageable levels."
+    },
+    {
+      "category": "Valuation",
+      "parameter": "pb",
+      "label": "Price to Book",
+      "operator": "<",
+      "value": 5,
+      "rationale": "Price to book should not be excessive."
+    },
+    {
+      "category": "Valuation",
+      "parameter": "peg",
+      "label": "PEG Ratio",
+      "operator": "<",
+      "value": 1.5,
+      "rationale": "PEG below 1.5 helps avoid overpaying for growth."
+    },
+    {
+      "category": "Cash Flow",
+      "parameter": "cfo",
+      "label": "Cash Flow from Operations",
+      "operator": ">",
+      "value": 0,
+      "rationale": "Cash flow from operations should be positive."
+    },
+    {
+      "category": "Governance",
+      "parameter": "promoter_holding",
+      "label": "Promoter Holding",
+      "operator": ">",
+      "value": 40,
+      "rationale": "Promoter holding should show clear ownership commitment."
+    },
+    {
+      "category": "Governance",
+      "parameter": "pledge",
+      "label": "Promoter Pledge",
+      "operator": "==",
+      "value": 0,
+      "rationale": "Promoter shares should not be pledged."
+    }
+  ],
+  "mid_cap": [
+    {
+      "category": "Growth",
+      "parameter": "sales_growth_5y",
+      "label": "Sales Growth 5Y",
+      "operator": ">",
+      "value": 15,
+      "rationale": "Mid-cap companies should grow faster than large caps."
+    },
+    {
+      "category": "Growth",
+      "parameter": "profit_growth_5y",
+      "label": "Profit Growth 5Y",
+      "operator": ">",
+      "value": 12,
+      "rationale": "Profit growth should remain strong over five years."
+    },
+    {
+      "category": "Profitability",
+      "parameter": "roe",
+      "label": "ROE",
+      "operator": ">",
+      "value": 15,
+      "rationale": "ROE should stay above 15%."
+    },
+    {
+      "category": "Profitability",
+      "parameter": "roce",
+      "label": "ROCE",
+      "operator": ">",
+      "value": 16,
+      "rationale": "ROCE should remain comfortably above the preferred threshold."
+    },
+    {
+      "category": "Margins",
+      "parameter": "opm",
+      "label": "OPM",
+      "operator": ">",
+      "value": 15,
+      "rationale": "Margins should remain healthy for the growth profile."
+    },
+    {
+      "category": "Debt",
+      "parameter": "debt_to_equity",
+      "label": "Debt to Equity",
+      "operator": "<",
+      "value": 0.8,
+      "rationale": "Balance sheet leverage should stay conservative."
+    },
+    {
+      "category": "Valuation",
+      "parameter": "peg",
+      "label": "PEG Ratio",
+      "operator": "<",
+      "value": 1.3,
+      "rationale": "Valuation should still be justified by growth."
+    },
+    {
+      "category": "Cash Flow",
+      "parameter": "cfo",
+      "label": "Cash Flow from Operations",
+      "operator": ">",
+      "value": 0,
+      "rationale": "Operating cash flow should be positive."
+    },
+    {
+      "category": "Governance",
+      "parameter": "promoter_holding",
+      "label": "Promoter Holding",
+      "operator": ">",
+      "value": 45,
+      "rationale": "Promoters should retain meaningful skin in the game."
+    },
+    {
+      "category": "Governance",
+      "parameter": "pledge",
+      "label": "Promoter Pledge",
+      "operator": "<=",
+      "value": 2,
+      "rationale": "Promoter pledge should be minimal."
+    }
+  ],
+  "small_cap": [
+    {
+      "category": "Growth",
+      "parameter": "sales_growth_5y",
+      "label": "Sales Growth 5Y",
+      "operator": ">",
+      "value": 18,
+      "rationale": "Small-cap businesses should show stronger growth."
+    },
+    {
+      "category": "Growth",
+      "parameter": "profit_growth_5y",
+      "label": "Profit Growth 5Y",
+      "operator": ">",
+      "value": 15,
+      "rationale": "Profit growth should confirm business scaling."
+    },
+    {
+      "category": "Profitability",
+      "parameter": "roe",
+      "label": "ROE",
+      "operator": ">",
+      "value": 12,
+      "rationale": "ROE should remain acceptable despite smaller scale."
+    },
+    {
+      "category": "Profitability",
+      "parameter": "roce",
+      "label": "ROCE",
+      "operator": ">",
+      "value": 18,
+      "rationale": "Capital efficiency should compensate for size risk."
+    },
+    {
+      "category": "Margins",
+      "parameter": "opm",
+      "label": "OPM",
+      "operator": ">",
+      "value": 15,
+      "rationale": "Margins should be resilient."
+    },
+    {
+      "category": "Debt",
+      "parameter": "debt_to_equity",
+      "label": "Debt to Equity",
+      "operator": "<",
+      "value": 1,
+      "rationale": "Leverage should not become a financing risk."
+    },
+    {
+      "category": "Valuation",
+      "parameter": "pe",
+      "label": "P/E",
+      "operator": "<",
+      "value": 40,
+      "rationale": "P/E should remain within a tolerable range."
+    },
+    {
+      "category": "Valuation",
+      "parameter": "peg",
+      "label": "PEG Ratio",
+      "operator": "<",
+      "value": 1.5,
+      "rationale": "Growth should justify valuation."
+    },
+    {
+      "category": "Cash Flow",
+      "parameter": "cfo",
+      "label": "Cash Flow from Operations",
+      "operator": ">",
+      "value": 0,
+      "rationale": "Cash generation should be positive."
+    },
+    {
+      "category": "Governance",
+      "parameter": "promoter_holding",
+      "label": "Promoter Holding",
+      "operator": ">",
+      "value": 40,
+      "rationale": "Promoters should hold a strong stake."
+    },
+    {
+      "category": "Governance",
+      "parameter": "pledge",
+      "label": "Promoter Pledge",
+      "operator": "<=",
+      "value": 5,
+      "rationale": "Promoter pledge should stay low."
+    }
+  ],
+  "micro_cap": [
+    {
+      "category": "Growth",
+      "parameter": "sales_growth_5y",
+      "label": "Sales Growth 5Y",
+      "operator": ">",
+      "value": 20,
+      "rationale": "Micro-cap companies need stronger growth to offset risk."
+    },
+    {
+      "category": "Growth",
+      "parameter": "profit_growth_5y",
+      "label": "Profit Growth 5Y",
+      "operator": ">",
+      "value": 12,
+      "rationale": "Profit growth should confirm business traction."
+    },
+    {
+      "category": "Profitability",
+      "parameter": "roe",
+      "label": "ROE",
+      "operator": ">",
+      "value": 10,
+      "rationale": "ROE should remain positive and reasonable."
+    },
+    {
+      "category": "Profitability",
+      "parameter": "roce",
+      "label": "ROCE",
+      "operator": ">",
+      "value": 10,
+      "rationale": "ROCE should remain above a basic quality threshold."
+    },
+    {
+      "category": "Margins",
+      "parameter": "opm",
+      "label": "OPM",
+      "operator": ">",
+      "value": 12,
+      "rationale": "Margins should indicate some business quality."
+    },
+    {
+      "category": "Debt",
+      "parameter": "debt_to_equity",
+      "label": "Debt to Equity",
+      "operator": "<",
+      "value": 0.5,
+      "rationale": "Micro-cap debt should stay tightly controlled."
+    },
+    {
+      "category": "Valuation",
+      "parameter": "pe",
+      "label": "P/E",
+      "operator": "<",
+      "value": 30,
+      "rationale": "P/E should remain moderate."
+    },
+    {
+      "category": "Valuation",
+      "parameter": "peg",
+      "label": "PEG Ratio",
+      "operator": "<",
+      "value": 1.5,
+      "rationale": "Growth should support the valuation paid."
+    },
+    {
+      "category": "Cash Flow",
+      "parameter": "cfo",
+      "label": "Cash Flow from Operations",
+      "operator": ">",
+      "value": 0,
+      "rationale": "Cash flow should be positive."
+    },
+    {
+      "category": "Governance",
+      "parameter": "promoter_holding",
+      "label": "Promoter Holding",
+      "operator": ">",
+      "value": 45,
+      "rationale": "Promoters should maintain high ownership."
+    },
+    {
+      "category": "Governance",
+      "parameter": "pledge",
+      "label": "Promoter Pledge",
+      "operator": "==",
+      "value": 0,
+      "rationale": "Promoter pledge is not acceptable at this risk level."
+    }
+  ]
+}
