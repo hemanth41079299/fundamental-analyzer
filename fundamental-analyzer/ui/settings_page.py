@@ -8,7 +8,7 @@ import streamlit as st
 
 from services.auth_service import change_password
 from ui.design_system import render_page_header, render_section_header, render_status_badge
-from ui.ui_theme import apply_finance_theme
+from ui.ui_theme import apply_finance_theme, render_theme_toggle
 
 
 def render_settings_page(current_user: dict[str, Any]) -> None:
@@ -16,7 +16,7 @@ def render_settings_page(current_user: dict[str, Any]) -> None:
     apply_finance_theme()
     render_page_header(
         "Settings",
-        "Manage profile details, security controls, and account status from one place.",
+        "Manage profile details, appearance preferences, security controls, and account status from one place.",
         badges=[
             ("Authenticated", "positive"),
             (str(current_user.get("approval_status", "approved")).title(), "info"),
@@ -41,9 +41,9 @@ def render_settings_page(current_user: dict[str, Any]) -> None:
         with top_row:
             st.markdown('<div class="finance-side-card">', unsafe_allow_html=True)
             render_status_badge("Appearance", tone="info")
-            render_section_header("Interface Mode", "The workspace uses a fixed dark theme for all authenticated views.")
-            st.metric("Theme", "Dark")
-            st.caption("Theme switching is disabled to keep the product visually consistent.")
+            render_section_header("Interface Mode", "Switch between light and dark themes while keeping the interface restrained and professional.")
+            render_theme_toggle(location="main", key="settings_theme_mode")
+            st.caption("Theme preference is stored in session state for the current session.")
             st.markdown("</div>", unsafe_allow_html=True)
         with bottom_row:
             st.markdown('<div class="finance-side-card">', unsafe_allow_html=True)

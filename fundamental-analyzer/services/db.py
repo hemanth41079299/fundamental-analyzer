@@ -191,6 +191,30 @@ def _ensure_custom_rules_table(connection) -> None:
     )
 
 
+def _ensure_company_workspaces_table(connection) -> None:
+    """Create the per-user investment dossier workspace table and indexes."""
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS company_workspaces (
+            id BIGSERIAL PRIMARY KEY,
+            user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            company_key TEXT NOT NULL,
+            ticker TEXT,
+            company_name TEXT NOT NULL,
+            ai_summary TEXT,
+            investment_thesis TEXT,
+            bear_case TEXT,
+            watch_triggers TEXT,
+            research_notes TEXT,
+            updated_at TEXT NOT NULL
+        )
+        """
+    )
+    connection.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_company_workspaces_user_key ON company_workspaces(user_id, company_key)"
+    )
+
+
 def _ensure_audit_logs_table(connection) -> None:
     """Create the audit log table and indexes."""
     connection.execute(
@@ -219,6 +243,7 @@ def init_db() -> None:
         _ensure_portfolio_snapshots_table(connection)
         _ensure_company_history_table(connection)
         _ensure_custom_rules_table(connection)
+        _ensure_company_workspaces_table(connection)
         _ensure_audit_logs_table(connection)
         connection.commit()
 

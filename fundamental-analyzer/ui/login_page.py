@@ -6,8 +6,7 @@ import streamlit as st
 
 from config.settings import AUTH_LOCKOUT_ATTEMPTS, AUTH_LOCKOUT_MINUTES
 from services.auth_service import login_user
-from ui.components.section_header import render_page_header, render_section_header
-from ui.components.status_badge import render_status_badge
+from ui.components.section_header import render_section_header
 from ui.layout_helpers import centered_auth_columns
 from ui.theme import apply_theme_css
 
@@ -18,38 +17,61 @@ def render_login_page() -> None:
     left_column, right_column = centered_auth_columns()
 
     with left_column:
-        st.markdown('<div class="ui-panel ui-auth-hero">', unsafe_allow_html=True)
-        render_status_badge("Professional Research Workspace", "info")
-        render_page_header(
-            "Institutional-grade investing workflow",
-            "Track portfolios, evaluate companies, monitor rules, and surface risks through a clean multi-user dashboard.",
-        )
         st.markdown(
             """
-            <div class="ui-card">
-                <div class="ui-card-title">Why this workspace</div>
-                <div class="ui-caption">Portfolio tracking, company research, watchlist intelligence, news monitoring, and audit-backed account controls are available under one secure login.</div>
+            <div class="ui-auth-hero">
+                <div class="ui-auth-brand-panel">
+                    <div class="ui-auth-product-title">Fundamental Analyzer</div>
+                    <div class="ui-auth-product-subtitle">Professional investment research platform</div>
+                    <div class="ui-auth-brand-headline">Institutional-grade research and portfolio oversight</div>
+                    <div class="ui-auth-brand-copy">
+                        Track portfolios, analyze companies, monitor risk, and manage watchlists through a secure research workspace.
+                    </div>
+                    <div class="ui-auth-feature-list">
+                        <div class="ui-auth-feature-item">
+                            <div class="ui-auth-feature-title">Portfolio oversight</div>
+                            <div class="ui-auth-feature-copy">Track holdings, transactions, cash, allocation, and portfolio health from one dashboard.</div>
+                        </div>
+                        <div class="ui-auth-feature-item">
+                            <div class="ui-auth-feature-title">Research workflow</div>
+                            <div class="ui-auth-feature-copy">Run company analysis, compare rule scorecards, and monitor valuation, earnings quality, and news signals.</div>
+                        </div>
+                        <div class="ui-auth-feature-item">
+                            <div class="ui-auth-feature-title">Controlled access</div>
+                            <div class="ui-auth-feature-copy">Accounts require administrator approval and all protected actions operate inside an authenticated workspace.</div>
+                        </div>
+                    </div>
+                </div>
             </div>
             """,
             unsafe_allow_html=True,
         )
-        st.markdown("</div>", unsafe_allow_html=True)
 
     with right_column:
-        st.markdown('<div class="ui-auth-card">', unsafe_allow_html=True)
-        render_status_badge("Secure Login", "info")
         render_section_header(
             "Sign in",
-            "Approved users can access research, portfolio dashboards, watchlists, rules, and account settings.",
+            "Use your approved account to access dashboards, company research, watchlists, rule management, and monitoring.",
         )
         with st.form("login_form", clear_on_submit=False):
             email = st.text_input("Email", placeholder="you@example.com")
             password = st.text_input("Password", type="password", placeholder="Enter your password")
+            st.markdown(
+                """
+                <div class="ui-auth-inline-note">
+                    <span class="ui-auth-link">Forgot password?</span> Contact the administrator to reset access.
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
             submitted = st.form_submit_button("Login", use_container_width=True)
-        st.caption(
-            f"Security policy: after {AUTH_LOCKOUT_ATTEMPTS} failed attempts, access is locked for {AUTH_LOCKOUT_MINUTES} minutes."
+        st.markdown(
+            f"""
+            <div class="ui-auth-security-note">
+                Security note: credentials are verified inside the authenticated workspace. After {AUTH_LOCKOUT_ATTEMPTS} failed attempts, sign-in is locked for {AUTH_LOCKOUT_MINUTES} minutes.
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
-        st.markdown("</div>", unsafe_allow_html=True)
 
     if submitted:
         try:

@@ -19,16 +19,22 @@ def render_register_page() -> None:
 
     with left_column:
         st.markdown('<div class="ui-panel ui-auth-hero">', unsafe_allow_html=True)
-        render_status_badge("Private Account Setup", "watch")
+        render_status_badge("Access Request", "watch")
         render_page_header(
-            "Create your analysis workspace",
-            "Open a private account for portfolio tracking, company research, watchlist monitoring, and user-specific rule profiles.",
+            "Request access to the research workspace",
+            "Submit your details for administrator review. Approved accounts gain access to portfolio tools, research modules, and user-specific settings.",
         )
         st.markdown(
             """
-            <div class="ui-card">
-                <div class="ui-card-title">Approval-based access</div>
-                <div class="ui-caption">New accounts are created in pending state. An administrator must approve the account before protected views become available.</div>
+            <div class="ui-auth-feature-list">
+                <div class="ui-auth-feature-item">
+                    <div class="ui-auth-feature-title">Approval workflow</div>
+                    <div class="ui-auth-feature-copy">New accounts are created in pending state until an administrator reviews and approves access.</div>
+                </div>
+                <div class="ui-auth-feature-item">
+                    <div class="ui-auth-feature-title">User-specific data</div>
+                    <div class="ui-auth-feature-copy">Portfolios, watchlists, rules, history, and account activity remain isolated per user.</div>
+                </div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -37,19 +43,24 @@ def render_register_page() -> None:
 
     with right_column:
         st.markdown('<div class="ui-auth-card">', unsafe_allow_html=True)
-        render_status_badge("Register", "info")
+        render_status_badge("Request Access", "info")
         render_section_header(
-            "Create account",
-            "Use your name, email, and password to register a local user account.",
+            "Request access",
+            "Use your name, email, and password to submit an access request for this workspace.",
         )
         with st.form("register_form", clear_on_submit=False):
             name = st.text_input("Full Name", placeholder="Your name")
             email = st.text_input("Email", placeholder="you@example.com")
             password = st.text_input("Password", type="password", placeholder=f"At least {AUTH_MIN_PASSWORD_LENGTH} characters")
             confirm_password = st.text_input("Confirm Password", type="password", placeholder="Repeat the password")
-            submitted = st.form_submit_button("Create Account", use_container_width=True)
-        st.caption(
-            f"Minimum password length: {AUTH_MIN_PASSWORD_LENGTH} characters. Access remains pending until admin approval."
+            submitted = st.form_submit_button("Request Access", use_container_width=True)
+        st.markdown(
+            f"""
+            <div class="ui-auth-security-note">
+                Access requests stay pending until approved by an administrator. Minimum password length: {AUTH_MIN_PASSWORD_LENGTH} characters.
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
         st.markdown("</div>", unsafe_allow_html=True)
 

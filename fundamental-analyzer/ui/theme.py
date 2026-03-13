@@ -1,4 +1,4 @@
-"""Centralized dark theme system for the Streamlit UI."""
+"""Centralized light and dark theme system for the Streamlit UI."""
 
 from __future__ import annotations
 
@@ -73,25 +73,35 @@ DARK_THEME: dict[str, str] = {
 
 def get_theme_name() -> str:
     """Return the active theme name."""
-    st.session_state["theme"] = "Dark"
-    return "Dark"
+    current = str(st.session_state.get("theme", "Dark")).title()
+    if current not in {"Light", "Dark"}:
+        current = "Dark"
+    st.session_state["theme"] = current
+    return current
 
 
 def get_theme() -> dict[str, str]:
     """Return the active theme tokens."""
-    return DARK_THEME
+    return LIGHT_THEME if get_theme_name() == "Light" else DARK_THEME
 
 
 def toggle_theme() -> None:
-    """Keep the application in dark mode."""
-    st.session_state["theme"] = "Dark"
+    """Toggle the active theme in session state."""
+    st.session_state["theme"] = "Light" if get_theme_name() == "Dark" else "Dark"
 
 
 def render_theme_toggle(location: str = "sidebar", key: str = "theme_toggle") -> str:
-    """Return the fixed dark theme without rendering a toggle."""
-    _ = location, key
-    st.session_state["theme"] = "Dark"
-    return "Dark"
+    """Render a visible theme toggle and persist the selection."""
+    container = st.sidebar if location == "sidebar" else st
+    selected = container.radio(
+        "Theme",
+        options=["Light", "Dark"],
+        horizontal=True,
+        index=0 if get_theme_name() == "Light" else 1,
+        key=key,
+    )
+    st.session_state["theme"] = selected
+    return selected
 
 
 def get_plotly_layout() -> dict[str, str]:
@@ -153,9 +163,23 @@ def apply_theme_css() -> None:
             --ui-space-card: 16px;
         }}
 
+        html {{
+            font-size: 16px;
+        }}
+
         html, body, [class*="css"], .stApp {{
             font-family: 'Inter', sans-serif;
             color: var(--ui-text);
+            font-size: 15px;
+        }}
+
+        body,
+        p,
+        span,
+        label,
+        li,
+        div {{
+            font-size: 14px;
         }}
 
         .stApp {{
@@ -189,6 +213,7 @@ def apply_theme_css() -> None:
             color: var(--ui-sidebar-text-inactive) !important;
             font-weight: 600 !important;
             opacity: 1 !important;
+            font-size: 13px !important;
         }}
 
         [data-testid="stSidebar"] div[role="radiogroup"] {{
@@ -211,6 +236,7 @@ def apply_theme_css() -> None:
             color: var(--ui-sidebar-text-inactive) !important;
             font-weight: 600 !important;
             opacity: 1 !important;
+            font-size: 14px !important;
         }}
 
         [data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) {{
@@ -232,7 +258,7 @@ def apply_theme_css() -> None:
 
         .ui-sidebar-group-label {{
             margin: 14px 0 8px 0;
-            font-size: 11px;
+            font-size: 12px;
             font-weight: 700;
             letter-spacing: 0.1em;
             text-transform: uppercase;
@@ -241,7 +267,7 @@ def apply_theme_css() -> None:
 
         .ui-sidebar-profile-name {{
             margin: 8px 0 2px 0;
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 700;
             line-height: 1.4;
             color: var(--ui-sidebar-text-active);
@@ -249,7 +275,7 @@ def apply_theme_css() -> None:
 
         .ui-sidebar-profile-email {{
             margin: 0 0 12px 0;
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 500;
             line-height: 1.5;
             color: var(--ui-sidebar-text-inactive);
@@ -270,14 +296,14 @@ def apply_theme_css() -> None:
 
         .ui-page-title {{
             margin: 0;
-            font-size: 30px;
+            font-size: 36px;
             font-weight: 700;
             letter-spacing: -0.03em;
             color: var(--ui-heading-text);
         }}
 
         .ui-page-subtitle {{
-            font-size: 14px;
+            font-size: 15px;
             line-height: 1.6;
             color: var(--ui-caption-text);
             max-width: 860px;
@@ -288,7 +314,8 @@ def apply_theme_css() -> None:
         .ui-chart-card,
         .ui-table-card,
         .ui-auth-card,
-        .ui-panel {{
+        .ui-panel,
+        .finance-side-card {{
             background: var(--ui-card);
             border: 1px solid var(--ui-border);
             border-radius: var(--ui-radius);
@@ -301,24 +328,32 @@ def apply_theme_css() -> None:
             box-shadow: var(--ui-shadow);
         }}
 
+        .finance-side-card {{
+            margin-bottom: 16px;
+        }}
+
         .ui-card-title,
         .ui-section-title {{
             margin: 0 0 8px 0;
-            font-size: 16px;
+            font-size: 20px;
             font-weight: 600;
             color: var(--ui-heading-text);
         }}
 
         .ui-caption,
         .ui-section-caption {{
-            font-size: 12px;
+            font-size: 14px;
             color: var(--ui-caption-text);
             line-height: 1.6;
             font-weight: 500;
         }}
 
+        .ui-card-title {{
+            font-size: 16px;
+        }}
+
         .ui-kpi-label {{
-            font-size: 12px;
+            font-size: 14px;
             color: var(--ui-caption-text);
             text-transform: uppercase;
             letter-spacing: 0.08em;
@@ -335,7 +370,7 @@ def apply_theme_css() -> None:
 
         .ui-kpi-change {{
             margin-top: 6px;
-            font-size: 13px;
+            font-size: 14px;
             color: var(--ui-caption-text);
             font-weight: 500;
         }}
@@ -346,7 +381,7 @@ def apply_theme_css() -> None:
             gap: 6px;
             border-radius: 999px;
             padding: 4px 10px;
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 600;
             border: 1px solid var(--ui-border);
         }}
@@ -362,6 +397,8 @@ def apply_theme_css() -> None:
         .stText,
         p {{
             color: var(--ui-text-secondary);
+            font-size: 14px;
+            line-height: 1.65;
         }}
 
         h1, h2, h3, h4, h5, h6 {{
@@ -371,6 +408,14 @@ def apply_theme_css() -> None:
         small,
         .ui-helper-text {{
             color: var(--ui-caption-text);
+            font-size: 13px;
+        }}
+
+        [data-testid="stMarkdownContainer"] p,
+        [data-testid="stMarkdownContainer"] li,
+        [data-testid="stMarkdownContainer"] span {{
+            font-size: 14px !important;
+            line-height: 1.65 !important;
         }}
 
         .stCaption,
@@ -378,6 +423,7 @@ def apply_theme_css() -> None:
             color: var(--ui-caption-text) !important;
             opacity: 1 !important;
             font-weight: 500 !important;
+            font-size: 13px !important;
         }}
 
         .ui-table-card [data-testid="stDataFrame"],
@@ -397,10 +443,12 @@ def apply_theme_css() -> None:
             background: var(--ui-table-header) !important;
             color: var(--ui-heading-text) !important;
             font-weight: 700 !important;
+            font-size: 13px !important;
         }}
 
         [data-testid="stDataFrame"] [role="gridcell"] {{
             color: var(--ui-card-text) !important;
+            font-size: 14px !important;
         }}
 
         [data-testid="stDataFrame"] [role="row"]:hover {{
@@ -419,6 +467,13 @@ def apply_theme_css() -> None:
             box-shadow: none !important;
         }}
 
+        .stTextInput input,
+        .stTextArea textarea,
+        .stSelectbox input,
+        .stNumberInput input {{
+            font-size: 15px !important;
+        }}
+
         .stTextInput label,
         .stTextArea label,
         .stSelectbox label,
@@ -427,6 +482,7 @@ def apply_theme_css() -> None:
         .stRadio label {{
             color: var(--ui-heading-text) !important;
             font-weight: 600 !important;
+            font-size: 15px !important;
         }}
 
         .stTextInput [data-testid="stMarkdownContainer"] p,
@@ -437,6 +493,27 @@ def apply_theme_css() -> None:
         .stRadio [data-testid="stMarkdownContainer"] p {{
             color: var(--ui-caption-text) !important;
             font-weight: 500 !important;
+            font-size: 13px !important;
+        }}
+
+        [data-testid="stWidgetLabel"] p,
+        [data-testid="stWidgetLabel"] span {{
+            font-size: 15px !important;
+            font-weight: 600 !important;
+        }}
+
+        [data-testid="stForm"] {{
+            background: var(--ui-card);
+            border: 1px solid var(--ui-border);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: var(--ui-shadow);
+        }}
+
+        [data-baseweb="tab-list"] button,
+        [data-baseweb="tab"] {{
+            font-size: 14px !important;
+            font-weight: 600 !important;
         }}
 
         .stButton > button,
@@ -447,6 +524,7 @@ def apply_theme_css() -> None:
             color: #ffffff !important;
             border: 1px solid var(--ui-accent) !important;
             font-weight: 600 !important;
+            font-size: 15px !important;
             padding: 0.65rem 1rem !important;
             box-shadow: none !important;
         }}
@@ -455,6 +533,13 @@ def apply_theme_css() -> None:
         .stFormSubmitButton > button:hover,
         .stDownloadButton > button:hover {{
             filter: brightness(0.94);
+        }}
+
+        .stButton > button[kind="secondary"],
+        .stDownloadButton > button[kind="secondary"] {{
+            background: var(--ui-card) !important;
+            color: var(--ui-heading-text) !important;
+            border: 1px solid var(--ui-border) !important;
         }}
 
         [data-testid="stMetric"] {{
@@ -520,19 +605,124 @@ def apply_theme_css() -> None:
 
         .ui-auth-layout {{
             display: grid;
-            grid-template-columns: 1.1fr 0.9fr;
-            gap: 24px;
+            grid-template-columns: minmax(0, 1.08fr) minmax(360px, 0.92fr);
+            gap: 28px;
             align-items: stretch;
         }}
 
         .ui-auth-hero {{
             display: flex;
             flex-direction: column;
+            gap: 18px;
+            justify-content: center;
+            min-height: 100%;
+        }}
+
+        .ui-auth-brand-panel {{
+            background: var(--ui-card);
+            border: 1px solid var(--ui-border);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: var(--ui-shadow);
+            display: flex;
+            flex-direction: column;
             gap: 16px;
+        }}
+
+        .ui-auth-product-title {{
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--ui-heading-text);
+            letter-spacing: -0.01em;
+        }}
+
+        .ui-auth-product-subtitle {{
+            margin-top: -8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--ui-caption-text);
+        }}
+
+        .ui-auth-brand-headline {{
+            font-size: 32px;
+            line-height: 1.2;
+            font-weight: 700;
+            color: var(--ui-heading-text);
+            letter-spacing: -0.03em;
+            max-width: 560px;
+        }}
+
+        .ui-auth-brand-copy {{
+            font-size: 15px;
+            line-height: 1.7;
+            color: var(--ui-text-secondary);
+            max-width: 560px;
         }}
 
         .ui-auth-card {{
             min-height: 100%;
+            padding: 28px;
+        }}
+
+        .ui-auth-card .ui-section-title {{
+            margin-bottom: 6px;
+            font-size: 22px;
+            font-weight: 700;
+        }}
+
+        .ui-auth-card .ui-section-caption {{
+            font-size: 15px;
+            line-height: 1.65;
+        }}
+
+        .ui-auth-feature-list {{
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }}
+
+        .ui-auth-feature-item {{
+            padding: 14px 16px;
+            border: 1px solid var(--ui-border);
+            border-radius: 12px;
+            background: var(--ui-background);
+        }}
+
+        .ui-auth-feature-title {{
+            margin-bottom: 4px;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--ui-heading-text);
+        }}
+
+        .ui-auth-feature-copy {{
+            font-size: 14px;
+            line-height: 1.65;
+            color: var(--ui-text-secondary);
+        }}
+
+        .ui-auth-inline-note {{
+            margin: 2px 0 14px 0;
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--ui-caption-text);
+        }}
+
+        .ui-auth-link {{
+            color: var(--ui-accent);
+            font-weight: 600;
+        }}
+
+        .ui-auth-security-note {{
+            margin-top: 16px;
+            padding: 12px 14px;
+            border: 1px solid var(--ui-border);
+            border-radius: 12px;
+            background: var(--ui-info-background);
+            font-size: 14px;
+            line-height: 1.65;
+            color: var(--ui-info-text);
+            font-weight: 500;
         }}
 
         .ui-panel {{
@@ -542,6 +732,14 @@ def apply_theme_css() -> None:
         @media (max-width: 980px) {{
             .ui-auth-layout {{
                 grid-template-columns: 1fr;
+            }}
+
+            .ui-auth-brand-panel {{
+                padding: 24px;
+            }}
+
+            .ui-auth-brand-headline {{
+                font-size: 28px;
             }}
         }}
         </style>

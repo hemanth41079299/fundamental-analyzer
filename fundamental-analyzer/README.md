@@ -17,6 +17,7 @@ Fundamental Analyzer is a local Streamlit equity research platform. It combines 
 - Audit logging for key account and portfolio actions
 - Company research history stored in PostgreSQL
 - Portfolio news, policy, macro, and geopolitical impact mapping for holdings and watchlist names
+- News & Macro Monitor powered by Google News RSS feeds with portfolio-impact mapping
 
 ## UI Theme System
 
@@ -258,6 +259,55 @@ Additional portfolio intelligence pages:
 - `Watchlist Dashboard`
 - `Market Discovery`
 - `Risk Monitor`
+
+## News & Macro Monitor
+
+The Monitor page is a dedicated research-assistance workspace for tracking external developments that may matter to the portfolio.
+
+Monitor tabs:
+
+1. Overview
+2. Geopolitics
+3. India Policy
+4. Business
+5. Portfolio Impact
+
+What it does:
+
+- fetches recent Google News RSS headlines across geopolitical, India policy, and business buckets
+- classifies each headline with deterministic keyword rules
+- builds a daily summary of dominant themes and overall tone
+- maps relevant headlines to current holdings using ticker, sector, and holding sensitivity tags
+- shows holding-level impact rows with direction, severity, reason, date, and article link
+
+Caching behavior:
+
+- Google News fetches are cached for `15 minutes`
+- the Monitor page includes a manual `Refresh News` action to clear cached results and reload feeds
+
+Supported source pattern:
+
+- Google News RSS search feeds
+- English / India-region news queries for policy, macro, business, and geopolitical monitoring
+
+Impact labels:
+
+- `Positive Tailwind`
+- `Negative Headwind`
+- `Neutral / Monitor`
+
+Severity labels:
+
+- `Low`
+- `Moderate`
+- `High`
+
+Holding sensitivity mapping:
+
+- uses `config/holding_sensitivity_map.json` first
+- falls back to sector-based sensitivity inference when a ticker-specific mapping is unavailable
+
+This layer is informational research support only. It is not a source of investment advice.
 
 Dashboard actions:
 
